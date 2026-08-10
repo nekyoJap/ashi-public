@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>レース結果</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100">
+  <div class="max-w-6xl mx-auto p-4">
+    <h1 class="text-2xl font-bold mb-2">レース結果</h1>
+
+    <!-- 日付選択 -->
+    <div class="mb-4 flex items-center gap-2">
+      <label class="text-sm text-gray-600">日付：</label>
+      <input id="dateInput" type="date" class="border rounded px-2 py-1" />
+
+      <label class="text-sm text-gray-600 ml-4">開催：</label>
+      <select id="daySelect" class="border rounded px-2 py-1"></select>
+    </div>
+
+    <div id="meta" class="text-sm text-gray-600 mb-4"></div>
+
+    <!-- レース切り替え -->
+    <div id="raceTabs" class="flex flex-wrap gap-2 mb-4"></div>
+
+    <!-- レース詳細 -->
+    <div id="raceDetail" class="bg-white rounded-xl shadow p-4"></div>
+  </div>
+
+  <script>
+    // ================================
+    // データ保持
+    // ================================
+    const data = {
+      days: [],        // JSON最外層（開催ごと）
+      currentDay: 0,   // 選択中の開催index
+      races: []        // 選択中開催のレース配列
+    };
+
+    const meta = document.getElementById('meta');
+    const raceTabs = document.getElementById('raceTabs');
+    const raceDetail = document.getElementById('raceDetail');
+    const daySelect = document.getElementById('daySelect');
+    const dateInput = document.getElementById('dateInput');
+
+    // 表示中のレース状態
+    // { mode: 'single', index: number } or { mode: 'all' }
+    let activeView = { mode: 'single', index: 0 };
+
+    // ================================
+    // 日付ユーティリティ
+    // ================================
+    function nextDate(dateStr) {
+      const d = new Date(dateStr);
+      d.setDate(d.getDate() + 1);
+      return d.toLocaleDateString('sv-SE');
+    }
+
+    // ================================
+    // 外部JSON読み込み
+    // ================================
+    async function loadData(dateStr) {
+      const filename = `race_result_${dateStr.replace(/-/g, '')}.json`;
+
+      const res = await fetch(`https://storage.googleapis.com/asilogkeirin/race_result/${filename}`);
+      if (!res.ok) {
+        alert(`データファイルが見つかりません: ${filename}`);
+        return;
+      }
+
+      data.days = await res.json();
+
+      renderDaySelect();
+      selectDay(0);
+    }
+
+    // ================================
+    // 開催セレクト描画
+    // ================================
+    function renderDaySelect() {
+      daySelect.innerHTML = '';
+
+      data.days.forEach((day, idx) => {
+        const opt = document.createElement('option');
+        opt.value = idx;
+        opt.textContent = `${day.place} / ${day.grade} / ${day.race_day}日目`;
+        daySelect.appendChild(opt);
+      });
+
+      daySelect.onchange = e => {
+        selectDay(Number(e.target.value));
+      };
+    }
+
+    // ================================
+    // 開催切り替え
+    // ================================
+    function selectDay(index) {
+      data.currentDay = index;
+      const day = data.days[index];
+
+      data.races = day.races;
+
+      meta.textContent = `${day.place} / ${day.grade} / ${day.race_day}日目 / レースID: ${day.race_id}`;
+      activeView = { mode: 'single', index: 0 };
+      renderRaceTabs();
+      if (data.races.length > 0) showRace(0);
+    }
+
+    // ================================
+    // レースタブ描画
+    // ================================
+    function renderRaceTabs() {
+      raceTabs.innerHTML = '';
+
+      // 各レース
+      data.races.forEach((race, idx) => {
+        const btn = document.createElement('button');
+        btn.textContent = `${race.race_num}R`;
+
+        const isActive =
+          activeView.mode === 'single' && activeView.index === idx;
+
+        btn.className = isActive
+          ? 'px-3 py-1 rounded-lg border bg-blue-600 text-white'
+          : 'px-3 py-1 rounded-lg border bg-white hover:bg-gray-100';
+
+        btn.onclick = () => showRace(idx);
+        raceTabs.appendChild(btn);
+      });
+
+      // 全レース表示
+      const allBtn = document.createElement('button');
+      allBtn.textContent = '全レース表示';
+
+      const isAllActive = activeView.mode === 'all';
+
+      allBtn.className = isAllActive
+        ? 'px-3 py-1 rounded-lg border bg-blue-600 text-white ml-2'
+        : 'px-3 py-1 rounded-lg border bg-white hover:bg-gray-100 ml-2';
+
+      allBtn.onclick = showAllRaces;
+      raceTabs.appendChild(allBtn);
+    }
+
+    // ================================
+    // 評価保存・取得（localStorage）
+    // ================================
+    function storageKey(day, racerName) {
+      return `eval:${day.race_id}:${racerName}`;
+    }
+
+    function saveEvaluation(day, racerName, value, comment) {
+      const key = storageKey(day, racerName);
+      const idx = day.race_day - 1;
+
+      let data = {
+        value: '',
+        comments: []
+      };
+
+      const raw = localStorage.getItem(key);
+      if (raw) {
+        data = JSON.parse(raw);
+        data.comments ||= [];
+      }
+
+      data.value = value;
+      data.comments[idx] = comment;
+
+      localStorage.setItem(key, JSON.stringify(data));
+    }
+
+    function loadEvaluation(day, racerName) {
+      const key = storageKey(day, racerName);
+      const raw = localStorage.getItem(key);
+
+      if (!raw) {
+        return { value: '', comment: '' };
+      }
+
+      const data = JSON.parse(raw);
+      const idx = day.race_day - 1;
+
+      return {
+        value: data.value || '',
+        comment: data.comments?.[idx] || ''
+      };
+    }
+
+    function autoResizeTextarea(el) {
+      el.style.height = 'auto';
+      el.style.height = el.scrollHeight + 'px';
+    }
+
+
+    // ================================
+    // レース表示
+    // ================================
+    function showRace(index) {
+      activeView = { mode: 'single', index };
+      renderRaceTabs();
+
+      const race = data.races[index];
+      if (!race) return;
+
+      const day = data.days[data.currentDay];
+
+      raceDetail.innerHTML = `
+        <h2 class="text-xl font-semibold mb-2">${race.race_num}R：${race.race_name}</h2>
+        ${race.lines ? `
+          <span class="text-sm text-gray-500">
+            並び：${race.lines}
+          </span>
+        ` : ''}
+        ${race.video_url ? `
+          <video src="${race.video_url}" controls class="w-full max-w-2xl mb-4"></video>
+        ` : ''}
+
+        <table class="w-full text-sm border">
+          <thead class="bg-gray-100">
+            <tr>
+              <th class="border px-2">着</th>
+              <th class="border px-2">車</th>
+              <th class="border px-2">選手</th>
+              <th class="border px-2">級班</th>
+              <th class="border px-2">上り</th>
+              <th class="border px-2">決</th>
+              <th class="border px-2">SB</th>
+              <th class="border px-2">着差</th>
+              <th class="border px-2">レース後コメント</th>
+              <th class="border px-2">評価</th>
+              <th class="border px-2">コメント</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${race.racers.map(r => {
+              const ev = loadEvaluation(day, r['選手名']);
+              return `
+              <tr class="text-center">
+                <td class="border">${r['着']}</td>
+                <td class="border">${r['車']}</td>
+                <td class="border">${r['選手名']}</td>
+                <td class="border">${r['級班']}</td>
+                <td class="border">${r['上り']}</td>
+                <td class="border">${r['決']}</td>
+                <td class="border">${r['SB']}</td>
+                <td class="border">${r['着差']}</td>
+                <td class="border text-left px-2">
+                  ${(() => {
+                    const c = r['レース後コメント'] || '';
+                    const max = 20;
+                    const short = c.length > max ? c.slice(0, max) + '…' : c;
+                    return `<span title="${c.replace(/"/g, '&quot;')}">${short}</span>`;
+                  })()}
+                </td>
+                <td class="border">
+                  <select class="border rounded px-1 text-sm eval-select" data-racer="${r['選手名']}" data-race="${race.race_num}">
+                    <option value="">-</option>
+                    <option value="S" ${ev.value==='S'?'selected':''}>S</option>
+                    <option value="A+" ${ev.value==='A+'?'selected':''}>A+</option>
+                    <option value="A" ${ev.value==='A'?'selected':''}>A</option>
+                    <option value="A-" ${ev.value==='A-'?'selected':''}>A-</option>
+                    <option value="B+" ${ev.value==='B+'?'selected':''}>B+</option>
+                    <option value="B" ${ev.value==='B'?'selected':''}>B</option>
+                    <option value="B-" ${ev.value==='B-'?'selected':''}>B-</option>
+                    <option value="C" ${ev.value==='C'?'selected':''}>C</option>
+                    <option value="D" ${ev.value==='D'?'selected':''}>D</option>
+                  </select>
+                </td>
+                <td class="border">
+                  <textarea
+                    class="w-full border rounded px-1 text-sm eval-comment resize-none overflow-hidden"
+                    rows="1"
+                    data-racer="${r['選手名']}"
+                  >${ev.comment}</textarea>
+                </td>
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
+      `;
+
+      // 保存イベント
+      raceDetail.querySelectorAll('.eval-select, .eval-comment').forEach(el => {
+        el.addEventListener('change', () => {
+          const racer = el.dataset.racer;
+          const row = el.closest('tr');
+          const value = row.querySelector('.eval-select').value;
+          const comment = row.querySelector('.eval-comment').value;
+          saveEvaluation(day, racer, value, comment);
+        });
+      });
+
+      raceDetail.querySelectorAll('.eval-comment').forEach(el => {
+        autoResizeTextarea(el);
+
+        el.addEventListener('input', () => {
+          autoResizeTextarea(el);
+        });
+      });
+    }
+
+    const now = new Date();
+    const baseDate = new Date(now);
+
+    if (now.getHours() < 19) {
+      baseDate.setDate(baseDate.getDate() - 1);
+    }
+
+    dateInput.value = baseDate.toLocaleDateString('sv-SE');
+
+    loadData(baseDate.toLocaleDateString('sv-SE'));
+
+    dateInput.addEventListener('change', e => {
+      loadData(e.target.value);
+    });
+
+    function showAllRaces() {
+      activeView = { mode: 'all' };
+      renderRaceTabs();
+
+      const day = data.days[data.currentDay];
+      if (!day) return;
+
+      // ===== 決勝判定 =====
+      const hasFinalRace = day.races.some(r =>
+        r.race_name.includes('決勝') && !r.race_name.includes('準決勝')
+      );
+      const next = nextDate(dateInput.value);
+      const nextUrl = `race.html?date=${next}&place=${encodeURIComponent(day.place)}`;
+
+      raceDetail.innerHTML = `
+        <div class="mb-4">
+          <!-- 見出し + 次の日リンク -->
+          <div class="flex items-center justify-between mb-2">
+            <h2 class="text-xl font-semibold">
+              ${day.place} / ${day.grade} / ${day.race_day}日目（全レース）
+            </h2>
+
+            ${hasFinalRace ? '' : `
+              <a href="${nextUrl}"
+                class="px-3 py-1 rounded text-sm font-medium
+                        border border-gray-400 text-gray-700
+                        hover:bg-gray-100 whitespace-nowrap">
+                次の日のレース
+              </a>
+            `}
+          </div>
+
+          <!-- 表コピー -->
+          <div class="flex justify-end">
+            <button
+              id="copyAllBtn"
+              class="px-3 py-1 rounded-lg border
+                    bg-white hover:bg-gray-100
+                    text-sm text-gray-700">
+              表をコピー
+            </button>
+          </div>
+        </div>
+
+        ${day.races.map(race => `
+          <div class="mb-8">
+            <h3 class="text-lg font-semibold mb-2">
+              ${race.race_num}R：${race.race_name}
+            </h3>
+
+            <table class="w-full text-sm border mb-4">
+              <thead class="bg-gray-100">
+                <tr>
+                  <th class="border px-2">着</th>
+                  <th class="border px-2">車</th>
+                  <th class="border px-2">選手</th>
+                  <th class="border px-2">級班</th>
+                  <th class="border px-2">上り</th>
+                  <th class="border px-2">決</th>
+                  <th class="border px-2">SB</th>
+                  <th class="border px-2">着差</th>
+                  <th class="border px-2">評価</th>
+                  <th class="border px-2">コメント</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${race.racers.map(r => {
+                  const ev = loadEvaluation(day, r['選手名']);;
+                  return `
+                    <tr class="text-center">
+                      <td class="border">${r['着']}</td>
+                      <td class="border">${r['車']}</td>
+                      <td class="border">${r['選手名']}</td>
+                      <td class="border">${r['級班']}</td>
+                      <td class="border">${r['上り']}</td>
+                      <td class="border">${r['決']}</td>
+                      <td class="border">${r['SB']}</td>
+                      <td class="border">${r['着差']}</td>
+                      <td class="border">
+                        <select class="border rounded px-1 text-sm eval-select"
+                          data-racer="${r['選手名']}"
+                          data-race="${race.race_num}">
+                          <option value="">-</option>
+                          <option value="S" ${ev.value==='S'?'selected':''}>S</option>
+                          <option value="A" ${ev.value==='A'?'selected':''}>A</option>
+                          <option value="B+" ${ev.value==='B+'?'selected':''}>B+</option>
+                          <option value="B" ${ev.value==='B'?'selected':''}>B</option>
+                          <option value="B-" ${ev.value==='B-'?'selected':''}>B-</option>
+                          <option value="C" ${ev.value==='C'?'selected':''}>C</option>
+                          <option value="D" ${ev.value==='D'?'selected':''}>D</option>
+                        </select>
+                      </td>
+                      <td class="border">
+                        <textarea
+                          class="w-full border rounded px-1 text-sm eval-comment resize-none overflow-hidden"
+                          rows="1"
+                          data-racer="${r['選手名']}"
+                        >${ev.comment}</textarea>
+                      </td>
+                    </tr>
+                  `;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        `).join('')}
+      `;
+
+     // 保存イベント
+      raceDetail.querySelectorAll('.eval-select, .eval-comment').forEach(el => {
+        el.addEventListener('change', () => {
+          const racer = el.dataset.racer;
+          const row = el.closest('tr');
+          const value = row.querySelector('.eval-select').value;
+          const comment = row.querySelector('.eval-comment').value;
+          saveEvaluation(day, racer, value, comment);
+        });
+      });
+
+      raceDetail.querySelectorAll('.eval-comment').forEach(el => {
+        autoResizeTextarea(el);
+
+        el.addEventListener('input', () => {
+          autoResizeTextarea(el);
+        });
+      });
+
+      const copyBtn = document.getElementById('copyAllBtn');
+      copyBtn.onclick = async () => {
+        const tsv = buildAllRacesTSV(day);
+        await navigator.clipboard.writeText(tsv);
+        copyBtn.textContent = 'コピーしました';
+        setTimeout(() => (copyBtn.textContent = '表をコピー'), 1500);
+      };
+    }
+    function sanitizeForTSV(text) {
+      if (!text) return '';
+      return text
+        .replace(/\r?\n/g, ' ')
+        .replace(/\t/g, ' ');
+    }
+
+    function buildAllRacesTSV(day) {
+      const header = [
+        '開催',
+        'グレード',
+        '日目',
+        'レース',
+        '着',
+        '車',
+        '選手',
+        '級班',
+        '上り',
+        '決',
+        'SB',
+        '着差',
+        '評価',
+        'コメント'
+      ];
+
+      const lines = [header.join('\t')];
+
+      day.races.forEach((race, raceIdx) => {
+        race.racers.forEach(r => {
+          const ev = loadEvaluation(day, r['選手名']);
+
+          lines.push([
+            day.place,
+            day.grade,
+            day.race_day,
+            race.race_num,
+            r['着'],
+            r['車'],
+            r['選手名'],
+            r['級班'],
+            r['上り'],
+            r['決'],
+            r['SB'],
+            r['着差'],
+            ev.value,
+            sanitizeForTSV(ev.comment)
+          ].join('\t'));
+        });
+        if (raceIdx < day.races.length - 1) {
+          lines.push('');
+        }
+      });
+
+      return lines.join('\n');
+    }
+  </script>
+</body>
+</html>

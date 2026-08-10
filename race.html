@@ -5,9 +5,42 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>レース情報</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* border-collapse: collapse は sticky と併用すると
+       罫線が列に追従せず、スクロール中の内容が固定列に透けるため separate を使う */
+    .race-table { border-collapse: separate; border-spacing: 0; }
+    .race-table th,
+    .race-table td { border-right: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; }
+    .race-table thead th { border-top: 1px solid #d1d5db; }
+    .race-table th:first-child,
+    .race-table td:first-child { border-left: 1px solid #d1d5db; }
+
+    /* 横スクロール時に左端で固定する列。
+       col-name の left は col-car の実幅と一致させる必要があるため、
+       両方 min/max-width で固定している */
+    .col-car  { position: sticky; left: 0;      min-width: 2.4rem; max-width: 2.4rem; z-index: 10; }
+    .col-name { position: sticky; left: 2.4rem; min-width: 7.5rem; max-width: 7.5rem; z-index: 10; }
+    thead .col-car, thead .col-name { z-index: 20; }
+
+    /* 固定列と横スクロール領域の境目 */
+    .col-name::after {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 0;
+      width: 4px; box-shadow: inset 6px 0 6px -6px rgba(0,0,0,.35);
+      transform: translateX(100%); pointer-events: none;
+    }
+  </style>
 </head>
 <body class="bg-gray-100 text-gray-900">
   <div class="max-w-6xl mx-auto p-3 sm:p-4">
+
+    <!-- 表示切替（プレビュー用） -->
+    <div class="mb-3">
+      <div id="memberToggle" class="inline-flex rounded-lg border border-gray-300 overflow-hidden text-xs font-medium">
+        <button type="button" data-member="0" class="px-3 py-1.5">ログイン前</button>
+        <button type="button" data-member="1" class="px-3 py-1.5 border-l border-gray-300">ログイン後</button>
+      </div>
+    </div>
+
     <h1 class="text-xl sm:text-2xl font-bold mb-3">レース情報</h1>
 
     <!-- 日付・開催選択 -->
@@ -22,7 +55,7 @@
       </div>
     </div>
 
-    <!-- 会員限定バナー（非会員時のみ表示） -->
+    <!-- 会員限定バナー（ログイン前のみ表示） -->
     <div id="lockBanner" class="hidden mb-4 rounded-lg border border-amber-300 bg-amber-50 p-3 sm:p-4">
       <p class="text-sm font-bold text-amber-900 mb-1">🔒 脚評価・評価コメントは会員限定です</p>
       <p class="text-xs text-amber-800 leading-relaxed">
@@ -39,6 +72,7 @@
     const daySelect = document.getElementById('daySelect');
     const content = document.getElementById('content');
     const lockBanner = document.getElementById('lockBanner');
+    const memberToggle = document.getElementById('memberToggle');
 
     let raceData = [];
 
@@ -59,15 +93,34 @@
     // ================================
     // 会員判定（暫定）
     //
-    // 注意: これはUI確認用の暫定実装であり、認証ではない。
+    // 注意: これは表示確認用の暫定実装であり、認証ではない。
     // 静的サイトである以上クライアント側の判定は誰でも書き換えられる。
     // 本番の出し分けはPhase 2でサーバー側に実装し、
     // 非会員には評価データ自体を配信しない方式に置き換える。
     // ================================
     const MEMBER_KEY = 'asilog:member';
-    const isMember = preview === 'member' || localStorage.getItem(MEMBER_KEY) === '1';
+    let isMember = preview === 'member' || localStorage.getItem(MEMBER_KEY) === '1';
 
-    lockBanner.classList.toggle('hidden', isMember);
+    function applyMemberState() {
+      lockBanner.classList.toggle('hidden', isMember);
+
+      memberToggle.querySelectorAll('button').forEach(btn => {
+        const active = (btn.dataset.member === '1') === isMember;
+        btn.className = btn.className
+          .replace(/\s*bg-gray-900|\s*text-white|\s*bg-white|\s*text-gray-600/g, '');
+        btn.className += active ? ' bg-gray-900 text-white' : ' bg-white text-gray-600';
+      });
+
+      if (raceData.length) renderByIndex(Number(daySelect.value) || 0);
+    }
+
+    memberToggle.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      isMember = btn.dataset.member === '1';
+      localStorage.setItem(MEMBER_KEY, isMember ? '1' : '0');
+      applyMemberState();
+    });
 
     // ================================
     // 日付初期化（GET優先 / JST 22時切り替え）
@@ -175,17 +228,15 @@
 
     // ================================
     // 会員限定セルの描画
-    // 非会員にはダミー文字（■）をぼかして表示する。
-    // 実データは渡さない。
+    // ログイン前はダミー文字（■）をぼかして表示し、実データは渡さない。
     // ================================
-    function lockedInline(width = '2.5rem') {
+    function memberCell(value, width = '2.5rem') {
+      if (isMember) return value ?? '';
+      // role="img" + aria-label で読み上げは「会員限定」になる。
+      // sr-only の別要素を置くと絶対配置の基準が横スクロール領域の外側になり、
+      // ページ全体に横スクロールが発生するため1要素にまとめている。
       return `<span class="inline-block align-middle blur-[3px] select-none text-gray-400"
-                    style="width:${width}" aria-hidden="true">■■</span>
-              <span class="sr-only">会員限定</span>`;
-    }
-
-    function memberCell(value, width) {
-      return isMember ? (value ?? '') : lockedInline(width);
+                    style="width:${width}" role="img" aria-label="会員限定">■■</span>`;
     }
 
     // ================================
@@ -210,9 +261,7 @@
           <div class="text-sm text-gray-600 mb-2">
             ライン: ${race.lines}
           </div>
-
           ${renderTable(target, race, hasEval)}
-          ${renderCards(target, race, hasEval)}
         `;
 
         content.appendChild(raceDiv);
@@ -220,73 +269,80 @@
     }
 
     // --------------------------------
-    // PC・タブレット向け: テーブル表示
+    // 出走表テーブル
+    // 車番・選手名を左端に固定し、残りの列を横スクロールさせる
     // --------------------------------
     function renderTable(target, race, hasEval) {
+      const th = 'px-1 py-1 bg-gray-50 font-medium whitespace-nowrap';
+      const td = 'px-1 py-1 whitespace-nowrap';
+
       return `
-        <div class="hidden sm:block overflow-x-auto">
-          <table class="w-full text-sm border">
-            <thead class="bg-gray-50">
+        <div class="overflow-x-auto">
+          <table class="race-table text-xs sm:text-sm" style="min-width:max-content">
+            <thead>
               <tr>
-                <th class="border px-1">車</th>
-                <th class="border px-1">選手</th>
-                ${hasEval ? `<th class="border px-1">評価</th>` : ''}
-                <th class="border px-1">競走<br>得点</th>
-                <th class="border px-1">脚</th>
-                <th class="border px-1">S</th>
-                <th class="border px-1">B</th>
-                <th class="border px-1">逃</th>
-                <th class="border px-1">捲</th>
-                <th class="border px-1">差</th>
-                <th class="border px-1">マ</th>
-                <th class="border px-1">勝率</th>
-                <th class="border px-1">2連<br>対率</th>
-                <th class="border px-1">3連<br>対率</th>
+                <th class="${th} col-car text-center">車</th>
+                <th class="${th} col-name text-left">選手名</th>
+                ${hasEval ? `<th class="${th}">評価</th>` : ''}
+                <th class="${th}">競走<br>得点</th>
+                <th class="${th}">脚</th>
+                <th class="${th}">S</th>
+                <th class="${th}">B</th>
+                <th class="${th}">逃</th>
+                <th class="${th}">捲</th>
+                <th class="${th}">差</th>
+                <th class="${th}">マ</th>
+                <th class="${th}">勝率</th>
+                <th class="${th}">2連<br>対率</th>
+                <th class="${th}">3連<br>対率</th>
                 ${hasEval
-                  ? `<th class="border px-1">前日<br>順位</th>
-                     <th class="border px-1">前日<br>上り</th>`
+                  ? `<th class="${th}">前日<br>順位</th>
+                     <th class="${th}">前日<br>上り</th>`
                   : ''
                 }
-                <th class="border px-1">コメント</th>
-                ${hasEval ? `<th class="border px-1">脚ログ</th>` : ''}
+                <th class="${th}">コメント</th>
+                ${hasEval ? `<th class="${th}">脚ログ</th>` : ''}
               </tr>
             </thead>
             <tbody>
               ${race.racers.map(r => `
                 <tr>
-                  <td class="border px-1 text-center">${r.車番}</td>
-                  <td class="border px-1">
-                    <div class="font-medium whitespace-nowrap">${r.選手名}</div>
-                    <div class="text-xs text-gray-600 leading-tight">
+                  <td class="${td} col-car bg-white text-center font-bold">${r.車番}</td>
+                  <td class="${td} col-name bg-white">
+                    <div class="font-medium leading-tight">${r.選手名}</div>
+                    <div class="text-[10px] text-gray-600 leading-tight">
                       ${r.級班} ${r.年齢} ${r.期別} ${r.府県}
                     </div>
                   </td>
                   ${hasEval
-                    ? `<td class="border px-1 text-center">
+                    ? `<td class="${td} text-center font-bold">
                          ${memberCell(loadPastEvaluation(target, r.選手名), '2rem')}
                        </td>`
                     : ''
                   }
-                  <td class="border px-1 text-right">${r.競走得点}</td>
-                  <td class="border px-1">${r.脚質}</td>
-                  <td class="border px-1">${r.S}</td>
-                  <td class="border px-1">${r.B}</td>
-                  <td class="border px-1">${r.逃}</td>
-                  <td class="border px-1">${r.捲}</td>
-                  <td class="border px-1">${r.差}</td>
-                  <td class="border px-1">${r.マ}</td>
-                  <td class="border px-1 text-right">${r.勝率}</td>
-                  <td class="border px-1 text-right">${r["2連対率"]}</td>
-                  <td class="border px-1 text-right">${r["3連対率"]}</td>
+                  <td class="${td} text-right">${r.競走得点}</td>
+                  <td class="${td} text-center">${r.脚質}</td>
+                  <td class="${td} text-center">${r.S}</td>
+                  <td class="${td} text-center">${r.B}</td>
+                  <td class="${td} text-center">${r.逃}</td>
+                  <td class="${td} text-center">${r.捲}</td>
+                  <td class="${td} text-center">${r.差}</td>
+                  <td class="${td} text-center">${r.マ}</td>
+                  <td class="${td} text-right">${r.勝率}</td>
+                  <td class="${td} text-right">${r["2連対率"]}</td>
+                  <td class="${td} text-right">${r["3連対率"]}</td>
                   ${hasEval
-                    ? `<td class="border px-1">${r.前日着 ?? ''}</td>
-                       <td class="border px-1">${r.前日上り ?? ''}</td>`
+                    ? `<td class="${td} text-center">${r.前日着 ?? ''}</td>
+                       <td class="${td} text-center">${r.前日上り ?? ''}</td>`
                     : ''
                   }
-                  <td class="border px-1">${r.コメント ?? ''}</td>
+                  <td class="px-1 py-1 min-w-[11rem] whitespace-normal leading-snug">
+                    ${r.コメント ?? ''}
+                  </td>
                   ${hasEval
-                    ? `<td class="border px-1 text-xs text-gray-700">
-                         ${memberCell(loadPastComment(target, r.選手名), '4rem')}
+                    ? `<td class="px-1 py-1 min-w-[8rem] whitespace-normal
+                               text-[11px] text-gray-700 leading-snug">
+                         ${memberCell(loadPastComment(target, r.選手名), '5rem')}
                        </td>`
                     : ''
                   }
@@ -298,86 +354,10 @@
       `;
     }
 
-    // --------------------------------
-    // モバイル向け: 選手カード表示
-    // 18列のテーブルは狭い画面で読めないため、
-    // 1選手 = 1カードに組み替える
-    // --------------------------------
-    function renderCards(target, race, hasEval) {
-      const stat = (label, value) => `
-        <div>
-          <dt class="text-[10px] text-gray-500 leading-none">${label}</dt>
-          <dd class="text-sm font-medium leading-tight">${value ?? '-'}</dd>
-        </div>
-      `;
-
-      return `
-        <div class="sm:hidden space-y-2">
-          ${race.racers.map(r => `
-            <div class="border rounded p-2">
-              <div class="flex items-start gap-2">
-                <span class="shrink-0 w-7 h-7 rounded bg-gray-800 text-white
-                             flex items-center justify-center font-bold text-sm">
-                  ${r.車番}
-                </span>
-                <div class="min-w-0 flex-1">
-                  <div class="font-bold leading-tight">${r.選手名}</div>
-                  <div class="text-xs text-gray-600 leading-tight">
-                    ${r.級班} ${r.年齢} ${r.期別} ${r.府県}
-                  </div>
-                </div>
-                ${hasEval
-                  ? `<div class="shrink-0 text-right">
-                       <div class="text-[10px] text-gray-500 leading-none">評価</div>
-                       <div class="font-bold text-sm leading-tight">
-                         ${memberCell(loadPastEvaluation(target, r.選手名), '2rem')}
-                       </div>
-                     </div>`
-                  : ''
-                }
-              </div>
-
-              <dl class="grid grid-cols-4 gap-x-2 gap-y-1 mt-2">
-                ${stat('得点', r.競走得点)}
-                ${stat('脚質', r.脚質)}
-                ${stat('S', r.S)}
-                ${stat('B', r.B)}
-                ${stat('逃', r.逃)}
-                ${stat('捲', r.捲)}
-                ${stat('差', r.差)}
-                ${stat('マ', r.マ)}
-                ${stat('勝率', r.勝率)}
-                ${stat('2連対', r["2連対率"])}
-                ${stat('3連対', r["3連対率"])}
-                ${hasEval ? stat('前日着', r.前日着) : ''}
-                ${hasEval ? stat('前日上り', r.前日上り) : ''}
-              </dl>
-
-              ${r.コメント
-                ? `<p class="mt-2 pt-2 border-t text-xs text-gray-700 leading-relaxed">
-                     ${r.コメント}
-                   </p>`
-                : ''
-              }
-
-              ${hasEval
-                ? `<div class="mt-2 pt-2 border-t">
-                     <div class="text-[10px] text-gray-500 leading-none mb-1">脚ログ</div>
-                     <div class="text-xs text-gray-700 leading-relaxed">
-                       ${memberCell(loadPastComment(target, r.選手名), '6rem')}
-                     </div>
-                   </div>`
-                : ''
-              }
-            </div>
-          `).join('')}
-        </div>
-      `;
-    }
-
     // ================================
     // 初期ロード
     // ================================
+    applyMemberState();
     loadByDate(dateInput.value);
   </script>
 </body>

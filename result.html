@@ -5,18 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>レース結果</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* border-collapse: collapse は sticky と併用すると
+       罫線が列に追従せず、スクロール中の内容が固定列に透けるため separate を使う */
+    .result-table { border-collapse: separate; border-spacing: 0; }
+    .result-table th,
+    .result-table td { border-right: 1px solid #d1d5db; border-bottom: 1px solid #d1d5db; }
+    .result-table thead th { border-top: 1px solid #d1d5db; }
+    .result-table th:first-child,
+    .result-table td:first-child { border-left: 1px solid #d1d5db; }
+
+    /* 横スクロール時に左端で固定する3列。
+       後続列の left は前の列の実幅の合計と一致させる必要があるため、
+       いずれも min/max-width で固定している */
+    .rcol-rank { position: sticky; left: 0;      min-width: 2.1rem; max-width: 2.1rem; z-index: 10; }
+    .rcol-car  { position: sticky; left: 2.1rem; min-width: 2.1rem; max-width: 2.1rem; z-index: 10; }
+    .rcol-name { position: sticky; left: 4.2rem; min-width: 5.5rem; max-width: 5.5rem; z-index: 10; }
+    thead .rcol-rank, thead .rcol-car, thead .rcol-name { z-index: 20; }
+
+    /* 固定列と横スクロール領域の境目 */
+    .rcol-name::after {
+      content: ''; position: absolute; top: 0; right: 0; bottom: 0;
+      width: 4px; box-shadow: inset 6px 0 6px -6px rgba(0,0,0,.35);
+      transform: translateX(100%); pointer-events: none;
+    }
+  </style>
 </head>
 <body class="bg-gray-100">
-  <div class="max-w-6xl mx-auto p-4">
-    <h1 class="text-2xl font-bold mb-2">レース結果</h1>
+  <div class="max-w-6xl mx-auto p-3 sm:p-4">
+    <h1 class="text-xl sm:text-2xl font-bold mb-3">レース結果</h1>
 
     <!-- 日付選択 -->
-    <div class="mb-4 flex items-center gap-2">
-      <label class="text-sm text-gray-600">日付：</label>
-      <input id="dateInput" type="date" class="border rounded px-2 py-1" />
-
-      <label class="text-sm text-gray-600 ml-4">開催：</label>
-      <select id="daySelect" class="border rounded px-2 py-1"></select>
+    <div class="mb-4 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3">
+      <div class="flex items-center gap-2">
+        <label for="dateInput" class="text-sm text-gray-600 shrink-0">日付：</label>
+        <input id="dateInput" type="date" class="border rounded px-2 py-1 flex-1 sm:flex-none" />
+      </div>
+      <div class="flex items-center gap-2 sm:ml-2">
+        <label for="daySelect" class="text-sm text-gray-600 shrink-0">開催：</label>
+        <select id="daySelect" class="border rounded px-2 py-1 flex-1 sm:flex-none max-w-full"></select>
+      </div>
     </div>
 
     <div id="meta" class="text-sm text-gray-600 mb-4"></div>
@@ -25,7 +53,7 @@
     <div id="raceTabs" class="flex flex-wrap gap-2 mb-4"></div>
 
     <!-- レース詳細 -->
-    <div id="raceDetail" class="bg-white rounded-xl shadow p-4"></div>
+    <div id="raceDetail" class="bg-white rounded-xl shadow p-3 sm:p-4"></div>
   </div>
 
   <script>
@@ -218,20 +246,21 @@
           <video src="${race.video_url}" controls class="w-full max-w-2xl mb-4"></video>
         ` : ''}
 
-        <table class="w-full text-sm border">
+        <div class="overflow-x-auto">
+        <table class="result-table w-full text-xs sm:text-sm" style="min-width:max-content">
           <thead class="bg-gray-100">
             <tr>
-              <th class="border px-2">着</th>
-              <th class="border px-2">車</th>
-              <th class="border px-2">選手</th>
-              <th class="border px-2">級班</th>
-              <th class="border px-2">上り</th>
-              <th class="border px-2">決</th>
-              <th class="border px-2">SB</th>
-              <th class="border px-2">着差</th>
-              <th class="border px-2">レース後コメント</th>
-              <th class="border px-2">評価</th>
-              <th class="border px-2">コメント</th>
+              <th class="px-1 py-1 bg-gray-100 rcol-rank">着</th>
+              <th class="px-1 py-1 bg-gray-100 rcol-car">車</th>
+              <th class="px-1 py-1 bg-gray-100 rcol-name">選手</th>
+              <th class="px-2 py-1 whitespace-nowrap">級班</th>
+              <th class="px-2 py-1 whitespace-nowrap">上り</th>
+              <th class="px-2 py-1 whitespace-nowrap">決</th>
+              <th class="px-2 py-1 whitespace-nowrap">SB</th>
+              <th class="px-2 py-1 whitespace-nowrap">着差</th>
+              <th class="px-2 py-1 whitespace-nowrap">レース後コメント</th>
+              <th class="px-2 py-1 whitespace-nowrap">評価</th>
+              <th class="px-2 py-1 whitespace-nowrap">コメント</th>
             </tr>
           </thead>
           <tbody>
@@ -239,15 +268,15 @@
               const ev = loadEvaluation(day, r['選手名']);
               return `
               <tr class="text-center">
-                <td class="border">${r['着']}</td>
-                <td class="border">${r['車']}</td>
-                <td class="border">${r['選手名']}</td>
-                <td class="border">${r['級班']}</td>
-                <td class="border">${r['上り']}</td>
-                <td class="border">${r['決']}</td>
-                <td class="border">${r['SB']}</td>
-                <td class="border">${r['着差']}</td>
-                <td class="border text-left px-2">
+                <td class="bg-white rcol-rank">${r['着']}</td>
+                <td class="bg-white rcol-car">${r['車']}</td>
+                <td class="bg-white rcol-name truncate">${r['選手名']}</td>
+                <td class="px-1 whitespace-nowrap">${r['級班']}</td>
+                <td class="px-1 whitespace-nowrap">${r['上り']}</td>
+                <td class="px-1 whitespace-nowrap">${r['決']}</td>
+                <td class="px-1 whitespace-nowrap">${r['SB']}</td>
+                <td class="px-1 whitespace-nowrap">${r['着差']}</td>
+                <td class="text-left px-2 min-w-[11rem]">
                   ${(() => {
                     const c = r['レース後コメント'] || '';
                     const max = 20;
@@ -255,7 +284,7 @@
                     return `<span title="${c.replace(/"/g, '&quot;')}">${short}</span>`;
                   })()}
                 </td>
-                <td class="border">
+                <td class="px-1">
                   <select class="border rounded px-1 text-sm eval-select" data-racer="${r['選手名']}" data-race="${race.race_num}">
                     <option value="">-</option>
                     <option value="S" ${ev.value==='S'?'selected':''}>S</option>
@@ -269,7 +298,7 @@
                     <option value="D" ${ev.value==='D'?'selected':''}>D</option>
                   </select>
                 </td>
-                <td class="border">
+                <td class="px-1 min-w-[10rem]">
                   <textarea
                     class="w-full border rounded px-1 text-sm eval-comment resize-none overflow-hidden"
                     rows="1"
@@ -280,6 +309,7 @@
             }).join('')}
           </tbody>
         </table>
+        </div>
       `;
 
       // 保存イベント
@@ -367,35 +397,36 @@
               ${race.race_num}R：${race.race_name}
             </h3>
 
-            <table class="w-full text-sm border mb-4">
+            <div class="overflow-x-auto mb-4">
+            <table class="result-table w-full text-xs sm:text-sm" style="min-width:max-content">
               <thead class="bg-gray-100">
                 <tr>
-                  <th class="border px-2">着</th>
-                  <th class="border px-2">車</th>
-                  <th class="border px-2">選手</th>
-                  <th class="border px-2">級班</th>
-                  <th class="border px-2">上り</th>
-                  <th class="border px-2">決</th>
-                  <th class="border px-2">SB</th>
-                  <th class="border px-2">着差</th>
-                  <th class="border px-2">評価</th>
-                  <th class="border px-2">コメント</th>
+                  <th class="px-1 py-1 bg-gray-100 rcol-rank">着</th>
+                  <th class="px-1 py-1 bg-gray-100 rcol-car">車</th>
+                  <th class="px-1 py-1 bg-gray-100 rcol-name">選手</th>
+                  <th class="px-2 py-1 whitespace-nowrap">級班</th>
+                  <th class="px-2 py-1 whitespace-nowrap">上り</th>
+                  <th class="px-2 py-1 whitespace-nowrap">決</th>
+                  <th class="px-2 py-1 whitespace-nowrap">SB</th>
+                  <th class="px-2 py-1 whitespace-nowrap">着差</th>
+                  <th class="px-2 py-1 whitespace-nowrap">評価</th>
+                  <th class="px-2 py-1 whitespace-nowrap">コメント</th>
                 </tr>
               </thead>
               <tbody>
                 ${race.racers.map(r => {
-                  const ev = loadEvaluation(day, r['選手名']);;
+                  const ev = loadEvaluation(day, r['選手名']);
                   return `
                     <tr class="text-center">
-                      <td class="border">${r['着']}</td>
-                      <td class="border">${r['車']}</td>
-                      <td class="border">${r['選手名']}</td>
-                      <td class="border">${r['級班']}</td>
-                      <td class="border">${r['上り']}</td>
-                      <td class="border">${r['決']}</td>
-                      <td class="border">${r['SB']}</td>
-                      <td class="border">${r['着差']}</td>
-                      <td class="border">
+                      <td class="bg-white rcol-rank">${r['着']}</td>
+                      <td class="bg-white rcol-car">${r['車']}</td>
+                      <td class="bg-white rcol-name truncate">${r['選手名']}</td>
+                      <td class="px-1 whitespace-nowrap">${r['級班']}</td>
+                      <td class="px-1 whitespace-nowrap">${r['上り']}</td>
+                      <td class="px-1 whitespace-nowrap">${r['決']}</td>
+                      <td class="px-1 whitespace-nowrap">${r['SB']}</td>
+                      <td class="px-1 whitespace-nowrap">${r['着差']}</td>
+                      <td class="px-1">
                         <select class="border rounded px-1 text-sm eval-select"
                           data-racer="${r['選手名']}"
                           data-race="${race.race_num}">
@@ -409,7 +440,7 @@
                           <option value="D" ${ev.value==='D'?'selected':''}>D</option>
                         </select>
                       </td>
-                      <td class="border">
+                      <td class="px-1 min-w-[10rem]">
                         <textarea
                           class="w-full border rounded px-1 text-sm eval-comment resize-none overflow-hidden"
                           rows="1"
@@ -421,6 +452,7 @@
                 }).join('')}
               </tbody>
             </table>
+            </div>
           </div>
         `).join('')}
       `;

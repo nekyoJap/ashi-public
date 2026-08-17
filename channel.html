@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>飛びつきチャンネル | 競輪の出走表・ライン・ピックアップ選手</title>
+<meta name="description" content="日付・開催・レースの切り替えから出走表の閲覧、ピックアップ選手のチェックまで1画面で完結する競輪情報チャンネルです。" />
+<link rel="stylesheet" href="assets/keirin-ui.css" />
+<style>
+  /* ===== チャンネルヒーロー ===== */
+  .ch-hero {
+    position: relative;
+    color: #fff;
+    background:
+      radial-gradient(120% 140% at 88% 0%, rgba(215, 0, 46, .55) 0%, rgba(215, 0, 46, 0) 55%),
+      linear-gradient(135deg, #16355e 0%, #0e2544 55%, #091a30 100%);
+    overflow: hidden;
+  }
+  .ch-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -60deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 9px);
+    pointer-events: none;
+  }
+  .ch-hero__inner {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    padding-top: 22px;
+    padding-bottom: 22px;
+  }
+  .ch-hero__mark {
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    width: 66px;
+    height: 66px;
+    border-radius: 16px;
+    background: linear-gradient(140deg, #e4103c, #a80024);
+    box-shadow: 0 6px 18px rgba(215, 0, 46, .4), 0 1px 0 rgba(255, 255, 255, .3) inset;
+    font-size: 34px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .ch-hero__kicker {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .22em;
+    color: #ffc7d3;
+  }
+  .ch-hero__title {
+    margin: 2px 0 4px;
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: .03em;
+    line-height: 1.15;
+  }
+  .ch-hero__lead {
+    margin: 0;
+    font-size: 12.5px;
+    color: #c3d3e6;
+    line-height: 1.6;
+  }
+  .ch-hero__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 8px;
+    margin-top: 10px;
+  }
+  .ch-stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 5px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .1);
+    border: 1px solid rgba(255, 255, 255, .16);
+    font-size: 11px;
+    color: #d7e3f1;
+    font-weight: 700;
+  }
+  .ch-stat b {
+    font-family: var(--font-num);
+    font-size: 14px;
+    color: #fff;
+  }
+
+  /* ===== 固定ツールバー ===== */
+  .ch-sticky {
+    position: sticky;
+    top: var(--header-h);
+    z-index: 30;
+    background: rgba(238, 241, 245, .95);
+    backdrop-filter: blur(6px);
+    border-bottom: 1px solid var(--line);
+    padding: 10px 0;
+  }
+  .ch-sticky .chips { margin-top: 8px; }
+
+  .date-nav { display: inline-flex; align-items: center; gap: 6px; }
+
+  /* ===== 開催サマリー ===== */
+  .day-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--navy);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    margin-bottom: 14px;
+  }
+  .day-summary__place { font-size: 18px; font-weight: 800; }
+
+  /* ===== ピックアップ ===== */
+  .pickup-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(272px, 1fr));
+    gap: 10px;
+  }
+  .pickup-card {
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-top: 3px solid var(--red);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 12px 12px 10px;
+  }
+  .pickup-card__rank {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 1px 9px 2px;
+    border-radius: 0 0 8px 0;
+    background: var(--red);
+    color: #fff;
+    font-family: var(--font-num);
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .06em;
+  }
+  .pickup-card__top {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 8px 0 8px;
+  }
+  .pickup-card__name { font-size: 17px; font-weight: 800; line-height: 1.2; }
+  .pickup-card__sub { font-size: 11px; color: var(--ink-3); }
+  .pickup-card__race {
+    margin-left: auto;
+    text-align: right;
+  }
+  .pickup-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1px;
+    background: var(--line-2);
+    border: 1px solid var(--line-2);
+    border-radius: var(--radius-sm);
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+  .pickup-stats div {
+    background: var(--panel-2);
+    padding: 5px 6px;
+    text-align: center;
+  }
+  .pickup-stats dt { font-size: 10px; color: var(--ink-3); font-weight: 700; }
+  .pickup-stats dd {
+    margin: 0;
+    font-family: var(--font-num);
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .kimarite {
+    display: flex;
+    gap: 4px;
+    font-size: 10.5px;
+    color: var(--ink-2);
+    margin-bottom: 8px;
+    flex-wrap: wrap;
+  }
+  .kimarite span {
+    background: var(--panel-2);
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    padding: 0 5px;
+    font-weight: 700;
+  }
+  .pickup-card__note {
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--ink-2);
+    background: #fffaf0;
+    border: 1px dashed #e6d5ab;
+    border-radius: var(--radius-sm);
+    padding: 6px 8px;
+    min-height: 34px;
+  }
+  .pickup-card__actions {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    margin-top: 8px;
+  }
+  .pickup-empty {
+    padding: 22px 14px;
+    text-align: center;
+    color: var(--ink-3);
+    background: var(--panel);
+    border: 1px dashed var(--line);
+    border-radius: var(--radius);
+    font-weight: 700;
+  }
+
+  /* ===== レース ===== */
+  .race-block { margin-bottom: 14px; }
+  .race-no {
+    display: inline-grid;
+    place-items: center;
+    min-width: 40px;
+    padding: 2px 8px;
+    border-radius: var(--radius-sm);
+    background: var(--navy);
+    color: #fff;
+    font-family: var(--font-num);
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .pick-btn {
+    border: 1px solid var(--line);
+    background: #fff;
+    color: #c7ced8;
+    border-radius: 4px;
+    width: 26px;
+    height: 24px;
+    font-size: 13px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+  .pick-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .pick-btn.is-on {
+    background: var(--gold);
+    border-color: #d99e00;
+    color: #4a3400;
+  }
+
+  @media (max-width: 640px) {
+    .ch-hero__mark { width: 52px; height: 52px; font-size: 27px; border-radius: 13px; }
+    .ch-hero__title { font-size: 21px; }
+    .pickup-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div id="siteHeader"></div>
+
+<!-- ================= チャンネルヒーロー ================= -->
+<section class="ch-hero">
+  <div class="wrap wrap--wide ch-hero__inner">
+    <div class="ch-hero__mark">飛</div>
+    <div class="ch-hero__body">
+      <p class="ch-hero__kicker">TOBITSUKI CHANNEL</p>
+      <h1 class="ch-hero__title">飛びつきチャンネル</h1>
+      <p class="ch-hero__lead">
+        日付・開催・レースの切り替えから出走表チェック、ピックアップ選手の確認まで。<span class="nowrap">この1画面で完結します。</span>
+      </p>
+      <div class="ch-hero__meta" id="heroMeta"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 日付・開催セレクタ ================= -->
+<div class="ch-sticky">
+  <div class="wrap wrap--wide">
+    <div class="toolbar">
+      <span class="field">
+        日付
+        <span class="date-nav">
+          <button class="btn btn--sm" id="prevDay" type="button">‹ 前日</button>
+          <input class="input" id="dateInput" type="date" />
+          <button class="btn btn--sm" id="nextDay" type="button">翌日 ›</button>
+        </span>
+      </span>
+      <span class="badge badge--navy" id="dateLabel"></span>
+      <span class="section-head__tail">
+        <button class="btn btn--sm" id="todayBtn" type="button">本日</button>
+      </span>
+    </div>
+    <div class="chips" id="dayChips"></div>
+  </div>
+</div>
+
+<!-- ================= 本体 ================= -->
+<main class="wrap wrap--wide" style="padding-top:14px;">
+  <div id="loadState" class="state">読み込み中…</div>
+
+  <div id="mainArea" hidden>
+    <div class="day-summary" id="daySummary"></div>
+
+    <!-- ピックアップ選手 -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">ピックアップ選手</h2>
+        <span class="section-en">PICK UP RACERS</span>
+        <span class="badge" id="pickupMode"></span>
+        <span class="section-head__tail">
+          <button class="btn btn--sm" id="editToggle" type="button">ピックアップを編集</button>
+        </span>
+      </div>
+      <div id="pickupArea"></div>
+      <p class="small muted" style="margin:8px 2px 0;" id="pickupHelp"></p>
+    </section>
+
+    <!-- 出走表 -->
+    <section class="section">
+      <div class="section-head">
+        <h2 class="section-title">出走表</h2>
+        <span class="section-en">RACE CARD</span>
+      </div>
+      <div class="chips" id="raceChips" style="margin-bottom:10px;"></div>
+      <div id="raceDetail"></div>
+    </section>
+  </div>
+</main>
+
+<div id="siteFooter"></div>
+
+<script src="assets/keirin-ui.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const esc = KUI.esc;
+
+  /* =======================================================
+     状態
+     ======================================================= */
+  const state = {
+    date: '',
+    days: [],
+    dayIndex: 0,
+    view: { mode: 'single', index: 0 },
+    editing: false
+  };
+
+  const el = {
+    dateInput:  document.getElementById('dateInput'),
+    dateLabel:  document.getElementById('dateLabel'),
+    prevDay:    document.getElementById('prevDay'),
+    nextDay:    document.getElementById('nextDay'),
+    todayBtn:   document.getElementById('todayBtn'),
+    dayChips:   document.getElementById('dayChips'),
+    loadState:  document.getElementById('loadState'),
+    mainArea:   document.getElementById('mainArea'),
+    daySummary: document.getElementById('daySummary'),
+    heroMeta:   document.getElementById('heroMeta'),
+    pickupArea: document.getElementById('pickupArea'),
+    pickupMode: document.getElementById('pickupMode'),
+    pickupHelp: document.getElementById('pickupHelp'),
+    editToggle: document.getElementById('editToggle'),
+    raceChips:  document.getElementById('raceChips'),
+    raceDetail: document.getElementById('raceDetail')
+  };
+
+  const currentDay = () => state.days[state.dayIndex];
+
+  /* =======================================================
+     ピックアップ（localStorage）
+     ======================================================= */
+  const PICK_KEY = day => `pickup:v1:${day.race_id}`;
+
+  function loadPicks(day) {
+    try {
+      const raw = localStorage.getItem(PICK_KEY(day));
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function savePicks(day, picks) {
+    try {
+      localStorage.setItem(PICK_KEY(day), JSON.stringify(picks));
+    } catch (e) { /* 保存できなくても表示は継続 */ }
+  }
+
+  function isPicked(day, raceNum, name) {
+    return loadPicks(day).some(p => p.name === name && p.race_num === raceNum);
+  }
+
+  function togglePick(day, raceNum, name) {
+    const picks = loadPicks(day);
+    const i = picks.findIndex(p => p.name === name && p.race_num === raceNum);
+    if (i >= 0) picks.splice(i, 1);
+    else picks.push({ race_num: raceNum, name: name, note: '' });
+    savePicks(day, picks);
+  }
+
+  function setPickNote(day, raceNum, name, note) {
+    const picks = loadPicks(day);
+    const hit = picks.find(p => p.name === name && p.race_num === raceNum);
+    if (!hit) return;
+    hit.note = note;
+    savePicks(day, picks);
+  }
+
+  /* 出走表から選手を引く */
+  function findRacer(day, raceNum, name) {
+    for (const race of day.races) {
+      if (race.race_num !== raceNum) continue;
+      const r = race.racers.find(x => x['選手名'] === name);
+      if (r) return { race, racer: r };
+    }
+    return null;
+  }
+
+  /* 手動ピックが無い場合の自動選出 */
+  const EVAL_RANK = { 'S': 0, 'A+': 1, 'A': 2, 'A-': 3 };
+
+  function autoPickup(day, limit) {
+    const rows = [];
+    day.races.forEach(race => {
+      race.racers.forEach(r => {
+        const ev = KUI.loadEvalRaw(day.race_id, r['選手名']);
+        const rank = ev && ev.value in EVAL_RANK ? EVAL_RANK[ev.value] : 99;
+        rows.push({
+          race, racer: r, rank,
+          score: Number(r['競走得点']) || 0,
+          note: ev && ev.comments ? (ev.comments[day.race_day - 1] || '') : ''
+        });
+      });
+    });
+
+    rows.sort((a, b) => (a.rank - b.rank) || (b.score - a.score));
+
+    const seen = new Set();
+    const out = [];
+    for (const row of rows) {
+      if (seen.has(row.racer['選手名'])) continue;
+      seen.add(row.racer['選手名']);
+      out.push(row);
+      if (out.length >= limit) break;
+    }
+    return out;
+  }
+
+  function pickupRows(day) {
+    const picks = loadPicks(day);
+    if (!picks.length) {
+      return { auto: true, rows: autoPickup(day, 6) };
+    }
+    const rows = picks.map(p => {
+      const hit = findRacer(day, p.race_num, p.name);
+      if (!hit) return null;
+      return { race: hit.race, racer: hit.racer, note: p.note || '' };
+    }).filter(Boolean);
+    return { auto: false, rows };
+  }
+
+  /* =======================================================
+     描画：ヒーロー / 開催
+     ======================================================= */
+  function renderHero() {
+    const raceCount = state.days.reduce((n, d) => n + d.races.length, 0);
+    const day = currentDay();
+    const pk = day ? pickupRows(day) : { rows: [] };
+
+    el.heroMeta.innerHTML = `
+      <span class="ch-stat">更新 <b>${esc(KUI.labelDate(state.date))}</b></span>
+      <span class="ch-stat">開催 <b>${state.days.length}</b> 場</span>
+      <span class="ch-stat">掲載 <b>${raceCount}</b> R</span>
+      <span class="ch-stat">ピックアップ <b>${pk.rows.length}</b> 名</span>`;
+  }
+
+  function renderDayChips() {
+    el.dayChips.innerHTML = state.days.map((d, i) => `
+      <button class="chip${i === state.dayIndex ? ' is-active' : ''}" data-day="${i}" type="button">
+        ${KUI.gradeBadge(d.grade)}
+        <span>${esc(d.place)}</span>
+        <span class="chip__sub">${esc(d.race_day)}日目</span>
+      </button>`).join('');
+  }
+
+  function renderDaySummary() {
+    const day = currentDay();
+    el.daySummary.innerHTML = `
+      ${KUI.gradeBadge(day.grade)}
+      <span class="day-summary__place">${esc(day.place)}競輪</span>
+      <span class="badge badge--navy">${esc(day.race_day)}日目</span>
+      <span class="badge">全${day.races.length}R</span>
+      <span class="section-head__tail small muted">開催ID ${esc(day.race_id)}</span>`;
+  }
+
+  /* =======================================================
+     描画：ピックアップ
+     ======================================================= */
+  function renderPickup() {
+    const day = currentDay();
+    const { auto, rows } = pickupRows(day);
+
+    el.pickupMode.textContent = auto ? '自動選出' : '選出済み';
+    el.pickupMode.className = auto ? 'badge' : 'badge badge--red';
+
+    el.pickupHelp.textContent = auto
+      ? '評価データと競走得点をもとに自動選出しています。「ピックアップを編集」から出走表の★で手動選出に切り替えられます。'
+      : '手動で選出したピックアップ選手です。全て解除すると自動選出に戻ります。';
+
+    if (!rows.length) {
+      el.pickupArea.innerHTML = '<div class="pickup-empty">ピックアップ選手がありません</div>';
+      return;
+    }
+
+    el.pickupArea.innerHTML = `<div class="pickup-grid">${rows.map((row, i) => {
+      const r = row.racer;
+      const name = r['選手名'];
+      const raceNum = row.race.race_num;
+      return `
+      <article class="pickup-card">
+        <span class="pickup-card__rank">PICK ${i + 1}</span>
+        <div class="pickup-card__top">
+          ${KUI.bikeBadge(r['車番'], 'lg')}
+          <div>
+            <div class="pickup-card__name">${esc(name)}</div>
+            <div class="pickup-card__sub">${esc(r['級班'])} / ${esc(r['府県'])} / ${esc(r['年齢'])} / ${esc(r['期別'])}</div>
+          </div>
+          <div class="pickup-card__race">
+            <button class="btn btn--sm btn--navy js-goto-race" data-race="${raceNum}" type="button">${raceNum}R を見る</button>
+          </div>
+        </div>
+
+        <dl class="pickup-stats">
+          <div><dt>競走得点</dt><dd>${esc(r['競走得点'])}</dd></div>
+          <div><dt>脚質</dt><dd style="font-size:13px;">${KUI.legBadge(r['脚質'])}</dd></div>
+          <div><dt>3連対率</dt><dd>${esc(r['3連対率'])}</dd></div>
+        </dl>
+
+        <div class="kimarite">
+          <span>逃 ${esc(r['逃'])}</span><span>捲 ${esc(r['捲'])}</span>
+          <span>差 ${esc(r['差'])}</span><span>マ ${esc(r['マ'])}</span>
+          <span>S ${esc(r['S'])}</span><span>B ${esc(r['B'])}</span>
+        </div>
+
+        ${state.editing ? `
+          <textarea class="textarea js-pick-note" rows="2"
+            placeholder="ピックアップ理由・狙い目メモ"
+            data-race="${raceNum}" data-name="${esc(name)}">${esc(row.note || '')}</textarea>
+          <div class="pickup-card__actions">
+            <button class="btn btn--sm js-unpick" data-race="${raceNum}" data-name="${esc(name)}" type="button">選出を解除</button>
+          </div>`
+        : `
+          <div class="pickup-card__note">${esc(row.note || r['コメント'] || '本人コメント・メモなし')}</div>`}
+      </article>`;
+    }).join('')}</div>`;
+
+    el.pickupArea.querySelectorAll('.js-pick-note').forEach(t => {
+      KUI.autoResize(t);
+      t.addEventListener('input', () => KUI.autoResize(t));
+      t.addEventListener('change', () => {
+        setPickNote(currentDay(), Number(t.dataset.race), t.dataset.name, t.value);
+      });
+    });
+  }
+
+  /* =======================================================
+     描画：レース
+     ======================================================= */
+  function renderRaceChips() {
+    const day = currentDay();
+    const chips = day.races.map((race, i) => `
+      <button class="chip chip--race${state.view.mode === 'single' && state.view.index === i ? ' is-active' : ''}"
+        data-race-index="${i}" type="button">${esc(race.race_num)}R</button>`).join('');
+
+    el.raceChips.innerHTML = chips + `
+      <button class="chip chip--all${state.view.mode === 'all' ? ' is-active' : ''}"
+        data-race-index="all" type="button">全レース</button>`;
+  }
+
+  function racerRow(day, race, r) {
+    const withPrev = day.race_day >= 2;
+    const ev = KUI.loadEvalRaw(day.race_id, r['選手名']);
+    const evalValue = ev && ev.value ? ev.value : '';
+
+    return `
+      <tr>
+        ${state.editing ? `<td>
+          <button class="pick-btn${isPicked(day, race.race_num, r['選手名']) ? ' is-on' : ''}"
+            data-race="${race.race_num}" data-name="${esc(r['選手名'])}"
+            title="ピックアップ選手に選出" type="button">★</button>
+        </td>` : ''}
+        <td>${KUI.bikeBadge(r['車番'])}</td>
+        <td class="txt" style="min-width:120px;">
+          <div class="racer-name">${esc(r['選手名'])}</div>
+          <div class="racer-meta">${esc(r['級班'])} ${esc(r['年齢'])} ${esc(r['期別'])} ${esc(r['府県'])}</div>
+        </td>
+        ${withPrev ? `<td>${evalValue ? `<span class="badge badge--red">${esc(evalValue)}</span>` : '<span class="muted">-</span>'}</td>` : ''}
+        <td class="num">${esc(r['競走得点'])}</td>
+        <td>${KUI.legBadge(r['脚質'])}</td>
+        <td class="num">${esc(r['S'])}</td>
+        <td class="num">${esc(r['B'])}</td>
+        <td class="num">${esc(r['逃'])}</td>
+        <td class="num">${esc(r['捲'])}</td>
+        <td class="num">${esc(r['差'])}</td>
+        <td class="num">${esc(r['マ'])}</td>
+        <td class="num">${esc(r['勝率'])}</td>
+        <td class="num">${esc(r['2連対率'])}</td>
+        <td class="num">${esc(r['3連対率'])}</td>
+        ${withPrev ? `
+          <td class="num">${esc(r['前日着'] ?? '')}</td>
+          <td class="num">${esc(r['前日上り'] ?? '')}</td>` : ''}
+        <td class="txt">${esc(r['コメント'] ?? '')}</td>
+      </tr>`;
+  }
+
+  function raceBlock(day, race) {
+    const withPrev = day.race_day >= 2;
+    return `
+      <div class="card race-block" id="race-${race.race_num}">
+        <div class="card__head">
+          <span class="race-no">${esc(race.race_num)}R</span>
+          <h3 class="card__title">${esc(race.race_name)}</h3>
+          <span class="section-head__tail lines">
+            <span class="muted small">並び</span>${KUI.linesHtml(race.lines)}
+          </span>
+        </div>
+        <div class="card__body" style="padding:0;">
+          <div class="table-scroll" style="border:0;border-radius:0;">
+            <table class="tbl">
+              <thead>
+                <tr>
+                  ${state.editing ? '<th>ピック</th>' : ''}
+                  <th>車</th>
+                  <th>選手</th>
+                  ${withPrev ? '<th>評価</th>' : ''}
+                  <th>競走<br>得点</th>
+                  <th>脚</th>
+                  <th>S</th>
+                  <th>B</th>
+                  <th>逃</th>
+                  <th>捲</th>
+                  <th>差</th>
+                  <th>マ</th>
+                  <th>勝率</th>
+                  <th>2連<br>対率</th>
+                  <th>3連<br>対率</th>
+                  ${withPrev ? '<th>前日<br>着</th><th>前日<br>上り</th>' : ''}
+                  <th>コメント</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${race.racers.map(r => racerRow(day, race, r)).join('')}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>`;
+  }
+
+  function renderRaceDetail() {
+    const day = currentDay();
+    renderRaceChips();
+
+    if (state.view.mode === 'all') {
+      el.raceDetail.innerHTML = day.races.map(race => raceBlock(day, race)).join('');
+      return;
+    }
+
+    const race = day.races[state.view.index];
+    if (!race) {
+      el.raceDetail.innerHTML = '<div class="state">レースがありません</div>';
+      return;
+    }
+    el.raceDetail.innerHTML = raceBlock(day, race);
+  }
+
+  function renderAll() {
+    renderDayChips();
+    renderDaySummary();
+    renderPickup();
+    renderRaceDetail();
+    renderHero();
+  }
+
+  /* =======================================================
+     読み込み
+     ======================================================= */
+  async function load(dateStr, preferPlace) {
+    state.date = dateStr;
+    el.dateInput.value = dateStr;
+    el.dateLabel.textContent = KUI.labelDate(dateStr);
+    el.mainArea.hidden = true;
+    el.loadState.hidden = false;
+    el.loadState.className = 'state';
+    el.loadState.textContent = '読み込み中…';
+    el.dayChips.innerHTML = '';
+
+    try {
+      const days = await KUI.fetchRaceInfo(dateStr);
+      if (!Array.isArray(days) || !days.length) throw new Error('empty');
+
+      state.days = days;
+      state.dayIndex = 0;
+      if (preferPlace) {
+        const i = days.findIndex(d => d.place === preferPlace);
+        if (i >= 0) state.dayIndex = i;
+      }
+      state.view = { mode: 'single', index: 0 };
+
+      el.loadState.hidden = true;
+      el.mainArea.hidden = false;
+      renderAll();
+    } catch (e) {
+      state.days = [];
+      el.mainArea.hidden = true;
+      el.loadState.hidden = false;
+      el.loadState.className = 'state state--error';
+      el.loadState.textContent = `${KUI.labelDate(dateStr)}の出走表データが見つかりませんでした`;
+      el.heroMeta.innerHTML = `<span class="ch-stat">更新 <b>${esc(KUI.labelDate(dateStr))}</b></span>`;
+    }
+  }
+
+  /* =======================================================
+     イベント（すべて画面内で完結）
+     ======================================================= */
+  el.dateInput.addEventListener('change', e => load(e.target.value));
+  el.prevDay.addEventListener('click', () => load(KUI.shiftDate(state.date, -1)));
+  el.nextDay.addEventListener('click', () => load(KUI.shiftDate(state.date, 1)));
+  el.todayBtn.addEventListener('click', () => load(defaultDate()));
+
+  el.dayChips.addEventListener('click', e => {
+    const btn = e.target.closest('[data-day]');
+    if (!btn) return;
+    state.dayIndex = Number(btn.dataset.day);
+    state.view = { mode: 'single', index: 0 };
+    renderAll();
+  });
+
+  el.raceChips.addEventListener('click', e => {
+    const btn = e.target.closest('[data-race-index]');
+    if (!btn) return;
+    const v = btn.dataset.raceIndex;
+    state.view = v === 'all' ? { mode: 'all' } : { mode: 'single', index: Number(v) };
+    renderRaceDetail();
+  });
+
+  el.editToggle.addEventListener('click', () => {
+    state.editing = !state.editing;
+    el.editToggle.textContent = state.editing ? '編集を終了' : 'ピックアップを編集';
+    el.editToggle.classList.toggle('is-on', state.editing);
+    renderPickup();
+    renderRaceDetail();
+  });
+
+  /* ピックアップ操作 */
+  el.raceDetail.addEventListener('click', e => {
+    const btn = e.target.closest('.pick-btn');
+    if (!btn) return;
+    togglePick(currentDay(), Number(btn.dataset.race), btn.dataset.name);
+    btn.classList.toggle('is-on');
+    renderPickup();
+    renderHero();
+  });
+
+  el.pickupArea.addEventListener('click', e => {
+    const goto = e.target.closest('.js-goto-race');
+    if (goto) {
+      const num = Number(goto.dataset.race);
+      const i = currentDay().races.findIndex(r => r.race_num === num);
+      if (i >= 0) {
+        state.view = { mode: 'single', index: i };
+        renderRaceDetail();
+        el.raceDetail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
+
+    const unpick = e.target.closest('.js-unpick');
+    if (unpick) {
+      togglePick(currentDay(), Number(unpick.dataset.race), unpick.dataset.name);
+      renderPickup();
+      renderRaceDetail();
+      renderHero();
+    }
+  });
+
+  /* =======================================================
+     初期化
+     ======================================================= */
+  function defaultDate() {
+    const now = new Date();
+    const base = new Date(now);
+    if (now.getHours() >= 22) base.setDate(base.getDate() + 1); // 22時以降は翌日開催
+    return KUI.ymd(base);
+  }
+
+  KUI.mountChrome('channel.html');
+
+  const params = new URLSearchParams(location.search);
+  load(params.get('date') || defaultDate(), params.get('place'));
+})();
+</script>
+</body>
+</html>

@@ -101,9 +101,6 @@
   }
   .tb-rank b { font-family: var(--font-num); font-size: 14px; }
   .tb-rank--s { background: linear-gradient(140deg, #e4103c, #a80024); }
-  .tb-rank--a { background: #d7602b; }
-  .tb-rank--b { background: #2f6ea8; }
-  .tb-rank--c { background: #7c8894; }
 
   /* ===== 飛びつき図 ===== */
   .tb-move {
@@ -115,22 +112,18 @@
     background: #fff6f8;
     border: 1px solid #f3c9d4;
     border-radius: var(--radius-sm);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
-  .tb-move__label {
-    font-size: 10.5px;
-    font-weight: 800;
-    letter-spacing: .12em;
-    color: var(--red-dark);
-  }
-  .tb-move__arrow { color: var(--red); font-weight: 800; font-size: 16px; }
+  .tb-move:last-of-type { margin-bottom: 0; }
   .tb-move__who { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
-  .tb-move__grp { display: inline-flex; gap: 2px; }
-  .tb-target { outline: 2px solid var(--red); outline-offset: 1px; border-radius: 4px; }
-
-  /* ===== 根拠 ===== */
-  .tb-why { margin: 0; padding-left: 1.1em; font-size: 12px; line-height: 1.75; color: var(--ink-2); }
-  .tb-why li::marker { color: var(--red); }
+  .tb-cmt {
+    flex: 1 1 260px;
+    min-width: 0;
+    font-size: 12px;
+    line-height: 1.65;
+    color: var(--ink-2);
+    font-weight: 400;
+  }
 
   .tb-none { padding: 18px 12px; text-align: center; color: var(--ink-3); font-size: 12.5px; font-weight: 700; }
 </style>
@@ -146,7 +139,7 @@
       <div class="ch-hero__kicker">TOBITSUKI RADAR</div>
       <h1 class="ch-hero__title">飛びつきチャンネル</h1>
       <p class="ch-hero__lead">
-        単騎の選手が他ラインの番手に飛びつきそうなレースを、並び・脚質・競走得点から抽出します。
+        コメントに「自力自在」「自在」がある選手を飛びつき候補として拾い、該当レースを抽出します。
       </p>
       <div class="ch-hero__meta" id="heroMeta"></div>
     </div>
@@ -167,11 +160,9 @@
       <span class="badge badge--navy" id="dateLabel"></span>
       <span class="field">
         表示
-        <select class="input" id="threshold">
-          <option value="0">すべてのレース</option>
-          <option value="40" selected>兆候あり（B以上）</option>
-          <option value="55">有力（A以上）</option>
-          <option value="70">濃厚（S）</option>
+        <select class="input" id="filterMode">
+          <option value="hit" selected>候補ありのみ</option>
+          <option value="all">すべてのレース</option>
         </select>
       </span>
       <span class="section-head__tail">
@@ -195,7 +186,7 @@
   'use strict';
 
   const esc = KUI.esc;
-  const state = { date: '', days: [], dayIndex: 0, threshold: 40 };
+  const state = { date: '', days: [], dayIndex: 0, filterMode: 'hit' };
 
   const el = {
     dateInput: document.getElementById('dateInput'),
@@ -203,7 +194,7 @@
     prevDay:   document.getElementById('prevDay'),
     nextDay:   document.getElementById('nextDay'),
     dayChips:  document.getElementById('dayChips'),
-    threshold: document.getElementById('threshold'),
+    filterMode: document.getElementById('filterMode'),
     heroMeta:  document.getElementById('heroMeta'),
     loadState: document.getElementById('loadState'),
     content:   document.getElementById('content'),
@@ -213,30 +204,31 @@
   const currentDay = () => state.days[state.dayIndex];
 
   /* =========================================================
-     飛びつき判定
+     飛びつき判定（暫定）
 
-     飛びつき = 自分のラインを持たない選手が、他ラインの番手
-     （先頭の直後）に飛びついてその位置を奪う戦法。
+     飛びつき = 自分のラインを持たない選手が、他ラインの番手に
+     飛びついてその位置を奪う戦法。
 
-     飛びつく側（候補）: 単騎の選手。
-       自力で駆けられない追込型ほど、どこかの車輪に付かなければ
-       勝負にならないため、飛びつく動機が強い。
-     飛びつかれる側（標的）: 各ラインの番手。
-       前を任せられる先頭が強いほど付く価値が高く、
-       今そこにいる番手が候補より弱いほど奪われやすい。
-       3番手が控えていない短いラインほど、抵抗が薄く動きやすい。
+     本来の判定ロジックは後日差し替える。現状は暫定として、
+     コメントに「自力自在」または「自在」を含む選手を
+     飛びつき候補として拾う。
 
-     ※重み付けは経験則。実戦の感覚に合わせてここだけ調整すればよい。
+     差し替えるときは findCandidates() だけを書き換えればよい。
+     描画側は candidates 配列の形だけに依存している。
      ========================================================= */
-  const W = {
-    need:    { sashi: 1.00, jizai: 0.62, nige: 0.22, other: 0.5 },
-    attract: 0.40,   // 先頭の強さ ＝ 付く価値
-    vuln:    0.38,   // 番手との地力差 ＝ 奪いやすさ
-    loose:   0.22    // ラインの短さ ＝ 動きやすさ
-  };
+  const TB_PATTERNS = [
+    { key: 'jiriki', label: '自力自在' },
+    { key: 'jizai',  label: '自在' }
+  ];
 
-  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
-  const num = v => { const n = parseFloat(v); return isFinite(n) ? n : 0; };
+  /* 「自力自在」は「自在」を含むため、長い方から先に判定する */
+  function matchComment(text) {
+    const t = String(text || '');
+    for (const pat of TB_PATTERNS) {
+      if (t.indexOf(pat.label) >= 0) return pat;
+    }
+    return null;
+  }
 
   /* 並び文字列 "1-2-3 4-5 6" → [[1,2,3],[4,5],[6]] */
   function parseLines(lines) {
@@ -246,126 +238,49 @@
       .filter(g => g.length);
   }
 
-  function legKind(leg) {
-    const v = String(leg || '').trim();
-    if (v.indexOf('追') === 0 || v.indexOf('差') === 0 || v.indexOf('マ') === 0) return 'sashi';
-    if (v.indexOf('両') === 0 || v.indexOf('自') === 0) return 'jizai';
-    if (v.indexOf('逃') === 0) return 'nige';
-    return 'other';
+  /* ライン内での位置。飛びつきは番手争いなので位置が判断材料になる */
+  function positionOf(groups, car) {
+    for (const g of groups) {
+      const i = g.indexOf(car);
+      if (i < 0) continue;
+      if (g.length === 1) return { group: g, index: i, label: '単騎' };
+      if (i === 0) return { group: g, index: i, label: '先頭' };
+      if (i === 1) return { group: g, index: i, label: '番手' };
+      return { group: g, index: i, label: `${i + 1}番手` };
+    }
+    return { group: [], index: -1, label: '並び不明' };
   }
 
-  const LEG_LABEL = { sashi: '追込型', jizai: '自在型', nige: '逃げ型', other: '' };
-
-  /* 競走得点を 0..1 に正規化（おおむね90〜115点の幅を想定） */
-  const normPoint = pt => clamp((num(pt) - 90) / 25, 0, 1);
-
-  function analyzeRace(race) {
+  function findCandidates(race) {
     const groups = parseLines(race.lines);
-    const byCar = new Map();
-    (race.racers || []).forEach(r => byCar.set(Number(r['車番']), r));
-
-    const solos = groups.filter(g => g.length === 1).map(g => g[0]);
-    const lines = groups.filter(g => g.length >= 2);
-
-    const pairs = [];
-    solos.forEach(car => {
-      const cand = byCar.get(car);
-      if (!cand) return;
-      const kind = legKind(cand['脚質']);
-      const need = W.need[kind];
-
-      lines.forEach(line => {
-        const head   = byCar.get(line[0]);
-        const target = byCar.get(line[1]);
-        if (!head || !target) return;
-
-        const attract = normPoint(head['競走得点']);
-        const diff    = num(cand['競走得点']) - num(target['競走得点']);
-        const vuln    = clamp(diff / 10 + 0.5, 0, 1);
-        const loose   = line.length === 2 ? 1.0 : (line.length === 3 ? 0.6 : 0.35);
-
-        const score = Math.round(
-          100 * need * (W.attract * attract + W.vuln * vuln + W.loose * loose)
-        );
-
-        pairs.push({ cand, target, head, line, kind, need, diff, score, attract, loose });
-      });
-    });
-
-    pairs.sort((a, b) => b.score - a.score);
-    const best = pairs[0] || null;
-    return { groups, solos, pairs, best, score: best ? best.score : 0 };
-  }
-
-  function rankOf(score) {
-    if (score >= 70) return { key: 's', label: '濃厚' };
-    if (score >= 55) return { key: 'a', label: '有力' };
-    if (score >= 40) return { key: 'b', label: '兆候' };
-    return { key: 'c', label: '薄い' };
+    return (race.racers || []).map(r => {
+      const hit = matchComment(r['コメント']);
+      if (!hit) return null;
+      return { racer: r, hit, pos: positionOf(groups, Number(r['車番'])) };
+    }).filter(Boolean);
   }
 
   /* =========================================================
      描画
      ========================================================= */
-  function whyList(p) {
-    const why = [];
-    const legLabel = LEG_LABEL[p.kind];
-
-    if (p.kind === 'sashi') {
-      why.push(`単騎の<b>追込型</b>。自力で駆けられず、どこかの番手を取らないと勝負にならない`);
-    } else if (p.kind === 'jizai') {
-      why.push(`単騎の<b>自在型</b>。自力もあるが、展開次第では番手に収まる選択もある`);
-    } else if (p.kind === 'nige') {
-      why.push(`単騎の<b>逃げ型</b>。自分で駆ける公算が大きく、飛びつきに回る可能性は低め`);
-    } else {
-      why.push('単騎で、どこかの車輪に付く必要がある');
-    }
-
-    why.push(`先頭 ${p.line[0]}番 の競走得点 <b>${esc(p.head['競走得点'])}</b>`
-      + (p.attract >= 0.6 ? ' と高く、付いて回る価値が大きい' : ' で、連結妙味はほどほど'));
-
-    const d = p.diff.toFixed(1);
-    if (p.diff > 0) {
-      why.push(`現番手 ${p.line[1]}番 との得点差 <b>+${esc(d)}</b>。地力で上回り、奪いにいきやすい`);
-    } else {
-      why.push(`現番手 ${p.line[1]}番 との得点差 <b>${esc(d)}</b>。相手が上位で、単純には収まりにくい`);
-    }
-
-    why.push(p.line.length === 2
-      ? `${p.line.length}車ラインで後ろに支えがなく、番手が浮きやすい`
-      : `${p.line.length}車ラインで、後ろが締めていれば抵抗を受ける`);
-
-    return `<ul class="tb-why">${why.map(w => `<li>${w}</li>`).join('')}</ul>`;
-  }
-
-  function lineGroupHtml(group, targetCar) {
-    return `<span class="tb-move__grp">${group.map(c =>
-      `<span class="${c === targetCar ? 'tb-target' : ''}">${KUI.bikeBadge(c)}</span>`
-    ).join('')}</span>`;
-  }
-
-  function raceCard(day, race, a) {
-    const rank = rankOf(a.score);
-    const p = a.best;
-
-    const body = p ? `
+  function candidateHtml(c) {
+    const r = c.racer;
+    return `
       <div class="tb-move">
-        <span class="tb-move__label">飛びつき</span>
         <span class="tb-move__who">
-          ${KUI.bikeBadge(p.cand['車番'], 'lg')}
-          <span>${esc(p.cand['選手名'])}</span>
-          <span class="leg leg--${p.kind === 'sashi' ? 'sashi' : (p.kind === 'nige' ? 'nige' : 'makuri')}">${esc(p.cand['脚質'])}</span>
-          <span class="muted small">単騎</span>
+          ${KUI.bikeBadge(r['車番'], 'lg')}
+          <span>${esc(r['選手名'])}</span>
+          <span class="badge badge--red">${esc(c.hit.label)}</span>
+          <span class="muted small">${esc(c.pos.label)}</span>
         </span>
-        <span class="tb-move__arrow">▶</span>
-        <span class="tb-move__who">
-          ${lineGroupHtml(p.line, p.line[1])}
-          <span class="muted small">の番手</span>
-          <span>${esc(p.target['選手名'])}</span>
-        </span>
-      </div>
-      ${whyList(p)}`
-      : `<div class="tb-none">単騎の選手がいないため、飛びつきの候補なし</div>`;
+        <span class="tb-cmt">${esc(r['コメント'] ?? '')}</span>
+      </div>`;
+  }
+
+  function raceCard(day, race, cands) {
+    const body = cands.length
+      ? cands.map(candidateHtml).join('')
+      : `<div class="tb-none">コメントに「自力自在」「自在」のある選手なし</div>`;
 
     return `
       <div class="card" style="margin-bottom:14px;">
@@ -373,7 +288,9 @@
           <span class="badge badge--navy">${esc(race.race_num)}R</span>
           <h2 class="card__title">${esc(race.race_name)}</h2>
           <span class="section-head__tail">
-            <span class="tb-rank tb-rank--${rank.key}">${rank.label} <b>${a.score}</b></span>
+            ${cands.length
+              ? `<span class="tb-rank tb-rank--s">候補 <b>${cands.length}</b></span>`
+              : '<span class="badge">候補なし</span>'}
           </span>
         </div>
         <div style="padding:12px;">
@@ -397,32 +314,30 @@
     renderDayChips();
     el.raceLink.href = `race.html?date=${state.date}&place=${encodeURIComponent(day.place)}`;
 
-    const analyzed = day.races
-      .map(race => ({ race, a: analyzeRace(race) }))
-      .sort((x, y) => y.a.score - x.a.score);
-
-    const hit = analyzed.filter(x => x.a.score >= state.threshold);
-    const strong = analyzed.filter(x => x.a.score >= 55).length;
+    const analyzed = day.races.map(race => ({ race, cands: findCandidates(race) }));
+    const hitRaces = analyzed.filter(x => x.cands.length);
+    const total = hitRaces.reduce((n, x) => n + x.cands.length, 0);
+    const shown = state.filterMode === 'all' ? analyzed : hitRaces;
 
     el.heroMeta.innerHTML = `
       <span class="ch-stat">${esc(day.place)} ${esc(day.race_day)}日目</span>
       <span class="ch-stat">全 <b>${day.races.length}</b> R</span>
-      <span class="ch-stat">兆候あり <b>${analyzed.filter(x => x.a.score >= 40).length}</b> R</span>
-      <span class="ch-stat">有力以上 <b>${strong}</b> R</span>`;
+      <span class="ch-stat">候補あり <b>${hitRaces.length}</b> R</span>
+      <span class="ch-stat">候補選手 <b>${total}</b> 人</span>`;
 
     el.content.innerHTML = `
-      <div class="day-summary" style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
            padding:10px 12px;background:var(--panel);border:1px solid var(--line);
            border-left:4px solid var(--red);border-radius:var(--radius);
            box-shadow:var(--shadow);margin-bottom:14px;">
         ${KUI.gradeBadge(day.grade)}
         <span style="font-size:18px;font-weight:800;">${esc(day.place)}競輪</span>
         <span class="badge badge--navy">${esc(day.race_day)}日目</span>
-        <span class="badge">表示 ${hit.length} / ${day.races.length}R</span>
+        <span class="badge">表示 ${shown.length} / ${day.races.length}R</span>
       </div>
-      ${hit.length
-        ? hit.map(x => raceCard(day, x.race, x.a)).join('')
-        : `<div class="state">この条件に当てはまるレースはありません</div>`}`;
+      ${shown.length
+        ? shown.map(x => raceCard(day, x.race, x.cands)).join('')
+        : `<div class="state">飛びつき候補のいるレースはありませんでした</div>`}`;
   }
 
   function renderDayChips() {
@@ -477,8 +392,8 @@
   el.prevDay.addEventListener('click', () => load(KUI.shiftDate(state.date, -1)));
   el.nextDay.addEventListener('click', () => load(KUI.shiftDate(state.date, 1)));
 
-  el.threshold.addEventListener('change', e => {
-    state.threshold = Number(e.target.value);
+  el.filterMode.addEventListener('change', e => {
+    state.filterMode = e.target.value;
     if (state.days.length) render();
   });
 
@@ -501,7 +416,7 @@
   }
 
   KUI.mountChrome('channel.html');
-  state.threshold = Number(el.threshold.value);
+  state.filterMode = el.filterMode.value;
 
   const params = new URLSearchParams(location.search);
   load(params.get('date') || defaultDate(), params.get('place'));

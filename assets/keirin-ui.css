@@ -462,6 +462,45 @@ a:hover { text-decoration: underline; }
 .tbl .txt { text-align: left; white-space: normal; min-width: 160px; }
 .tbl .nowrap { white-space: nowrap; }
 
+/* ---------------------------------------------------------
+   固定列
+   横スクロールする表で、左端の識別列（着順・車番・選手名）を
+   固定する。列の幅と位置は各ページ側で
+   --frz-left / min-width / max-width を指定する。
+
+   .tbl は border-collapse: separate を使っているため
+   （collapse だと罫線が固定列に追従せず、スクロール中の
+   内容が透ける）、罫線はそのままセルに残る。
+   --------------------------------------------------------- */
+.tbl .frz {
+  position: sticky;
+  left: var(--frz-left, 0);
+  z-index: 10;
+  background: var(--panel);
+}
+.tbl thead .frz {
+  z-index: 20;
+  background: var(--navy);
+}
+
+/* ゼブラ・ホバーは行側の背景なので、固定列にも同じ色を敷き直さないと
+   スクロールした本文が固定列に透ける */
+.tbl tbody tr:nth-child(even) .frz { background: #f9fafc; }
+.tbl tbody tr:hover .frz { background: #fff8e6; }
+
+/* 固定列と横スクロール領域の境目に落ちる影 */
+.tbl .frz--edge::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 4px;
+  box-shadow: inset 6px 0 6px -6px rgba(0, 0, 0, .35);
+  transform: translateX(100%);
+  pointer-events: none;
+}
+
 .racer-name { font-weight: 800; font-size: 13.5px; white-space: nowrap; }
 .racer-meta { font-size: 10.5px; color: var(--ink-3); line-height: 1.3; white-space: nowrap; }
 

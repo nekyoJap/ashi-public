@@ -249,8 +249,8 @@
                 <th>2連<br>対率</th>
                 <th>3連<br>対率</th>
                 ${withPrev ? '<th>前日<br>順位</th><th>前日<br>上り</th>' : ''}
-                <th>コメント</th>
-                ${withPrev ? '<th>脚ログ</th>' : ''}
+                <th class="txt--note">コメント</th>
+                ${withPrev ? '<th class="txt--note">脚ログ</th>' : ''}
               </tr>
             </thead>
             <tbody>
@@ -282,8 +282,8 @@
                   ${withPrev ? `
                     <td class="num">${esc(r['前日着'] ?? '')}</td>
                     <td class="num">${esc(r['前日上り'] ?? '')}</td>` : ''}
-                  <td class="txt">${esc(r['コメント'] ?? '')}</td>
-                  ${withPrev ? `<td class="txt small">${memberCell(pastComment(day, r['選手名']), '5rem')}</td>` : ''}
+                  <td class="txt txt--note"><div class="clamp2" title="${esc(r['コメント'] ?? '')}">${esc(r['コメント'] ?? '')}</div></td>
+                  ${withPrev ? `<td class="txt txt--note small"><div class="clamp2"${isMember ? ` title="${esc(pastComment(day, r['選手名']))}"` : ''}>${memberCell(pastComment(day, r['選手名']), '5rem')}</div></td>` : ''}
                 </tr>`;
               }).join('')}
             </tbody>

@@ -6,17 +6,19 @@
   <title>株式会社◯◯◯◯ | 競輪データ分析・情報提供サービス</title>
   <meta name="description" content="競輪のレースデータ分析と評価情報の提供を行う運営会社の公式サイトです。" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <!-- OS に明暗を伝える。無いとダークでも日付入力やスクロールバーが白いまま残る -->
+  <style>:root { color-scheme: light dark; }</style>
 </head>
-<body class="bg-white text-gray-900">
+<body class="bg-white dark:bg-[#0b0f14] text-gray-900 dark:text-[#e6ebf2]">
 
   <!-- ヘッダー -->
-  <header class="border-b bg-white sticky top-0 z-10">
+  <header class="border-b dark:border-[#2c3643] bg-white/80 dark:bg-[#0b0f14]/80 backdrop-blur sticky top-0 z-10">
     <div class="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
       <a href="#top" class="text-xl font-bold tracking-wide">株式会社◯◯◯◯</a>
-      <nav class="hidden sm:flex gap-6 text-sm text-gray-600">
-        <a href="#service" class="hover:text-gray-900">事業内容</a>
-        <a href="#about" class="hover:text-gray-900">会社概要</a>
-        <a href="#contact" class="hover:text-gray-900">お問い合わせ</a>
+      <nav class="hidden sm:flex gap-6 text-sm text-gray-600 dark:text-[#a8b3c1]">
+        <a href="#service" class="hover:text-gray-900 dark:hover:text-[#e6ebf2]">事業内容</a>
+        <a href="#about" class="hover:text-gray-900 dark:hover:text-[#e6ebf2]">会社概要</a>
+        <a href="#contact" class="hover:text-gray-900 dark:hover:text-[#e6ebf2]">お問い合わせ</a>
       </nav>
     </div>
   </header>
@@ -38,69 +40,69 @@
   <!-- 事業内容 -->
   <section id="service" class="max-w-5xl mx-auto px-4 py-16 sm:py-20">
     <h2 class="text-2xl font-bold mb-2">事業内容</h2>
-    <p class="text-sm text-gray-500 mb-10">Service</p>
+    <p class="text-sm text-gray-500 dark:text-[#7d8896] mb-10">Service</p>
 
     <div class="grid sm:grid-cols-3 gap-6">
-      <div class="border rounded-lg p-6">
+      <div class="border dark:border-[#2c3643] rounded-lg p-6 dark:bg-[#151b23]">
         <div class="text-3xl mb-4">📊</div>
         <h3 class="font-bold mb-2">レースデータ分析</h3>
-        <p class="text-sm text-gray-600 leading-relaxed">
+        <p class="text-sm text-gray-600 dark:text-[#a8b3c1] leading-relaxed">
           全国の競輪場のレースデータを日次で収集・蓄積し、独自の視点で分析しています。
         </p>
       </div>
-      <div class="border rounded-lg p-6">
+      <div class="border dark:border-[#2c3643] rounded-lg p-6 dark:bg-[#151b23]">
         <div class="text-3xl mb-4">📝</div>
         <h3 class="font-bold mb-2">評価情報の提供</h3>
-        <p class="text-sm text-gray-600 leading-relaxed">
+        <p class="text-sm text-gray-600 dark:text-[#a8b3c1] leading-relaxed">
           脚質評価・選手評価コメント・推奨選手など、レース観戦に役立つ独自の評価情報を会員向けに提供しています。
         </p>
       </div>
-      <div class="border rounded-lg p-6">
+      <div class="border dark:border-[#2c3643] rounded-lg p-6 dark:bg-[#151b23]">
         <div class="text-3xl mb-4">💻</div>
         <h3 class="font-bold mb-2">情報サイトの運営</h3>
-        <p class="text-sm text-gray-600 leading-relaxed">
+        <p class="text-sm text-gray-600 dark:text-[#a8b3c1] leading-relaxed">
           出走表・レース結果を無料で閲覧できる情報サイトを運営しています。評価情報は月額制の会員サービスとしてご利用いただけます。
         </p>
       </div>
     </div>
 
-    <div class="mt-8 bg-gray-50 border rounded-lg p-6 text-sm text-gray-600 leading-relaxed">
-      当社が提供するのは、レースを楽しむための<strong class="text-gray-900">情報提供サービス</strong>です。
+    <div class="mt-8 bg-gray-50 dark:bg-[#151b23] border dark:border-[#2c3643] rounded-lg p-6 text-sm text-gray-600 dark:text-[#a8b3c1] leading-relaxed">
+      当社が提供するのは、レースを楽しむための<strong class="text-gray-900 dark:text-[#e6ebf2]">情報提供サービス</strong>です。
       車券の的中を保証するものではなく、賭博行為を助長することを目的としたものではありません。
       車券の購入はご自身の判断と責任において行ってください。
     </div>
   </section>
 
   <!-- 会社概要 -->
-  <section id="about" class="bg-gray-50 border-y">
+  <section id="about" class="bg-gray-50 dark:bg-[#12181f] border-y dark:border-[#2c3643]">
     <div class="max-w-5xl mx-auto px-4 py-16 sm:py-20">
       <h2 class="text-2xl font-bold mb-2">会社概要</h2>
-      <p class="text-sm text-gray-500 mb-10">Company</p>
+      <p class="text-sm text-gray-500 dark:text-[#7d8896] mb-10">Company</p>
 
       <table class="w-full text-sm sm:text-base">
-        <tbody class="divide-y">
+        <tbody class="divide-y dark:divide-[#2c3643]">
           <tr>
-            <th class="py-4 pr-4 text-left text-gray-500 font-normal w-32 sm:w-48 align-top">会社名</th>
+            <th class="py-4 pr-4 text-left text-gray-500 dark:text-[#7d8896] font-normal w-32 sm:w-48 align-top">会社名</th>
             <td class="py-4">株式会社◯◯◯◯</td>
           </tr>
           <tr>
-            <th class="py-4 pr-4 text-left text-gray-500 font-normal align-top">所在地</th>
+            <th class="py-4 pr-4 text-left text-gray-500 dark:text-[#7d8896] font-normal align-top">所在地</th>
             <td class="py-4">〒000-0000 ◯◯県◯◯市◯◯ 0-0-0</td>
           </tr>
           <tr>
-            <th class="py-4 pr-4 text-left text-gray-500 font-normal align-top">代表者</th>
+            <th class="py-4 pr-4 text-left text-gray-500 dark:text-[#7d8896] font-normal align-top">代表者</th>
             <td class="py-4">代表取締役　◯◯ ◯◯</td>
           </tr>
           <tr>
-            <th class="py-4 pr-4 text-left text-gray-500 font-normal align-top">設立</th>
+            <th class="py-4 pr-4 text-left text-gray-500 dark:text-[#7d8896] font-normal align-top">設立</th>
             <td class="py-4">20XX年X月</td>
           </tr>
           <tr>
-            <th class="py-4 pr-4 text-left text-gray-500 font-normal align-top">事業内容</th>
+            <th class="py-4 pr-4 text-left text-gray-500 dark:text-[#7d8896] font-normal align-top">事業内容</th>
             <td class="py-4">競輪に関するデータ分析・評価情報の提供、情報サイトの運営</td>
           </tr>
           <tr>
-            <th class="py-4 pr-4 text-left text-gray-500 font-normal align-top">連絡先</th>
+            <th class="py-4 pr-4 text-left text-gray-500 dark:text-[#7d8896] font-normal align-top">連絡先</th>
             <td class="py-4">info@example.com</td>
           </tr>
         </tbody>
@@ -111,13 +113,13 @@
   <!-- お問い合わせ -->
   <section id="contact" class="max-w-5xl mx-auto px-4 py-16 sm:py-20">
     <h2 class="text-2xl font-bold mb-2">お問い合わせ</h2>
-    <p class="text-sm text-gray-500 mb-8">Contact</p>
-    <p class="text-gray-700 leading-relaxed mb-6">
+    <p class="text-sm text-gray-500 dark:text-[#7d8896] mb-8">Contact</p>
+    <p class="text-gray-700 dark:text-[#a8b3c1] leading-relaxed mb-6">
       サービスに関するご質問・取材のご依頼などは、下記メールアドレスまでお気軽にご連絡ください。
       通常2〜3営業日以内にご返信いたします。
     </p>
     <a href="mailto:info@example.com"
-       class="inline-block bg-gray-900 text-white px-8 py-3 rounded-lg font-bold hover:bg-gray-700 transition">
+       class="inline-block bg-gray-900 dark:bg-[#5aa2f0] text-white dark:text-[#0b0f14] px-8 py-3 rounded-lg font-bold hover:bg-gray-700 dark:hover:bg-[#7fb8f5] transition">
       info@example.com
     </a>
   </section>

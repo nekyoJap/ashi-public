@@ -259,7 +259,7 @@
       <td>
         <select class="select eval-select" data-racer="${esc(racerName)}">${options}</select>
       </td>
-      <td class="txt" style="min-width:180px;">
+      <td class="txt txt--note">
         <textarea class="textarea eval-comment" rows="1"
           data-racer="${esc(racerName)}">${esc(ev.comment)}</textarea>
       </td>`;
@@ -296,9 +296,9 @@
                 <th>決</th>
                 <th>SB</th>
                 <th>着差</th>
-                ${showRaceComment ? '<th>レース後コメント</th>' : ''}
+                ${showRaceComment ? '<th class="txt--note">レース後コメント</th>' : ''}
                 <th>評価</th>
-                <th>コメント</th>
+                <th class="txt--note">コメント</th>
               </tr>
             </thead>
             <tbody>
@@ -317,8 +317,8 @@
                   <td>${esc(r['決'])}</td>
                   <td>${esc(r['SB'])}</td>
                   <td>${esc(r['着差'])}</td>
-                  ${showRaceComment ? `<td class="txt">
-                    <span class="cmt" title="${esc(comment)}">${esc(comment) || '<span class="muted">-</span>'}</span>
+                  ${showRaceComment ? `<td class="txt txt--note">
+                    <div class="clamp2" title="${esc(comment)}">${esc(comment) || '<span class="muted">-</span>'}</div>
                   </td>` : ''}
                   ${evalCell(day, r['選手名'])}
                 </tr>`;

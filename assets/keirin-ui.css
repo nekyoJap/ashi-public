@@ -17,6 +17,16 @@
   --bg:          #eef1f5;
   --panel:       #ffffff;
   --panel-2:     #f7f9fb;
+  --zebra:       #f9fafc;   /* 偶数行 */
+  --row-hover:   #fff8e6;   /* 行ホバー */
+  --scroll-thumb:#c8d1dc;
+  --field-bg:    #ffffff;   /* 入力欄・表の地 */
+  --makuri:      #b45309;   /* 脚質「捲」 */
+  --notice-bg:   #fff8e6;
+  --notice-line: #f0dca8;
+  --notice-ink:  #6b4e00;
+  --mark:        #1f2937;   /* 印（飛びつきチャンネル） */
+  --mark-ink:    #ffffff;
 
   /* accent */
   --red:         #d7002e;
@@ -35,6 +45,51 @@
   --font: "Hiragino Kaku Gothic ProN", "Hiragino Sans", "Noto Sans JP",
           "Yu Gothic Medium", "Yu Gothic", Meiryo, system-ui, sans-serif;
   --font-num: "Roboto Condensed", "Arial Narrow", var(--font);
+
+  /* 明暗どちらのUIかをOSに伝える。これがないとダークモードでも
+     <input type="date"> や <select> のネイティブ部分が白いまま残る */
+  color-scheme: light dark;
+}
+
+/* =========================================================
+   ダークモード
+   ネイビー基調は識別のため残し、地と文字だけを反転させる。
+   車番7色・グレードバッジは競輪で意味の決まった色なので変えない。
+   ========================================================= */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --navy:        #16304f;
+    --navy-2:      #1d3d63;
+    --navy-3:      #264d79;
+    --ink:         #e6ebf2;
+    --ink-2:       #a8b3c1;
+    --ink-3:       #7d8896;
+    --line:        #2c3643;
+    --line-2:      #242d38;
+    --bg:          #0b0f14;
+    --panel:       #151b23;
+    --panel-2:     #1b222c;
+    --zebra:       #1a212a;
+    --row-hover:   #2c2612;
+    --scroll-thumb:#3a4553;
+    --field-bg:    #1b222c;
+    --makuri:      #e0a458;
+    --notice-bg:   #2e2412;
+    --notice-line: #634c1e;
+    --notice-ink:  #ffd682;
+    --mark:        #e6ebf2;
+    --mark-ink:    #0b0f14;
+
+    --red:         #ff4d6d;
+    --red-dark:    #d7002e;
+    --gold:        #ffc933;
+    --green:       #34c98a;
+    --blue:        #5aa2f0;
+
+    /* 暗い面では影ではなく明度で階層を出す */
+    --shadow:      none;
+    --shadow-lg:   0 4px 20px rgba(0, 0, 0, .5);
+  }
 }
 
 * { box-sizing: border-box; }
@@ -292,7 +347,7 @@ a:hover { text-decoration: underline; }
   line-height: 1.6;
 }
 .leg--nige { color: var(--red); }
-.leg--makuri { color: #b45309; }
+.leg--makuri { color: var(--makuri); }
 .leg--sashi { color: var(--blue); }
 .leg--other { color: var(--ink-3); }
 
@@ -307,7 +362,7 @@ a:hover { text-decoration: underline; }
   scrollbar-width: thin;
 }
 .chips::-webkit-scrollbar { height: 5px; }
-.chips::-webkit-scrollbar-thumb { background: #c8d1dc; border-radius: 3px; }
+.chips::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 3px; }
 
 .chip {
   flex: 0 0 auto;
@@ -326,7 +381,7 @@ a:hover { text-decoration: underline; }
   transition: background .12s, border-color .12s, color .12s;
   font-family: inherit;
 }
-.chip:hover { background: var(--panel-2); border-color: #c8d1dc; }
+.chip:hover { background: var(--panel-2); border-color: var(--scroll-thumb); }
 .chip.is-active {
   background: var(--navy);
   border-color: var(--navy);
@@ -393,7 +448,7 @@ a:hover { text-decoration: underline; }
 .input, .select, .textarea {
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--field-bg);
   color: var(--ink);
   padding: 5px 8px;
   font-family: inherit;
@@ -427,7 +482,7 @@ a:hover { text-decoration: underline; }
   -webkit-overflow-scrolling: touch;
   border: 1px solid var(--line);
   border-radius: var(--radius-sm);
-  background: #fff;
+  background: var(--field-bg);
 }
 
 .tbl {
@@ -455,11 +510,27 @@ a:hover { text-decoration: underline; }
   border-bottom: 0;
   white-space: nowrap;
 }
-.tbl tbody tr:nth-child(even) { background: #f9fafc; }
-.tbl tbody tr:hover { background: #fff8e6; }
+.tbl tbody tr:nth-child(even) { background: var(--zebra); }
+.tbl tbody tr:hover { background: var(--row-hover); }
 .tbl tbody tr:last-child td { border-bottom: 0; }
 .tbl .num { font-family: var(--font-num); text-align: right; }
 .tbl .txt { text-align: left; white-space: normal; min-width: 160px; }
+
+/* コメント系の列（コメント / 脚ログ / レース後コメント）。
+   min-width だけでは下限にしかならず、内容の長い方が伸びて幅が食い違うため
+   min/max/width を同値で固定する。列幅はヘッダを含む全セルの最大値で
+   決まるので th にも当てること。 */
+.tbl .txt--note { min-width: 16rem; max-width: 16rem; width: 16rem; }
+
+/* 折り返しは最大2行に抑える。幅を固定すると長いコメントが3行以上に伸びて
+   行高が一気に増え、レース直前に一覧で見るという用途が損なわれる。
+   全文は title 属性に入れてある。 */
+.txt--note .clamp2 {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
 .tbl .nowrap { white-space: nowrap; }
 
 /* ---------------------------------------------------------
@@ -485,8 +556,8 @@ a:hover { text-decoration: underline; }
 
 /* ゼブラ・ホバーは行側の背景なので、固定列にも同じ色を敷き直さないと
    スクロールした本文が固定列に透ける */
-.tbl tbody tr:nth-child(even) .frz { background: #f9fafc; }
-.tbl tbody tr:hover .frz { background: #fff8e6; }
+.tbl tbody tr:nth-child(even) .frz { background: var(--zebra); }
+.tbl tbody tr:hover .frz { background: var(--row-hover); }
 
 /* 固定列と横スクロール領域の境目に落ちる影 */
 .tbl .frz--edge::after {
@@ -530,12 +601,12 @@ a:hover { text-decoration: underline; }
 .state--error { color: var(--red-dark); }
 
 .notice {
-  background: #fff8e6;
-  border: 1px solid #f0dca8;
+  background: var(--notice-bg);
+  border: 1px solid var(--notice-line);
   border-radius: var(--radius-sm);
   padding: 10px 12px;
   font-size: 12px;
-  color: #6b4e00;
+  color: var(--notice-ink);
   line-height: 1.7;
 }
 

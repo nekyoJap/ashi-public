@@ -3,137 +3,200 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>飛びつきチャンネル | 飛びつきが起きそうなレースを探す</title>
-<meta name="description" content="単騎の選手が他ラインの番手に飛びつきそうなレースを、並び・脚質・競走得点から抽出して一覧表示します。" />
+<title>飛びつきチャンネル | 飛びつきが発生しそうなレースと買い目</title>
+<meta name="description" content="その日 飛びつきが発生しそうなレースと買い目（模範目）を掲載しています。" />
 <link rel="stylesheet" href="assets/keirin-ui.css" />
 <style>
-  /* ===== ヒーロー ===== */
-  .ch-hero {
-    position: relative;
-    color: #fff;
-    background:
-      radial-gradient(120% 140% at 88% 0%, rgba(215, 0, 46, .55) 0%, rgba(215, 0, 46, 0) 55%),
-      linear-gradient(135deg, #16355e 0%, #0e2544 55%, #091a30 100%);
-    overflow: hidden;
-  }
-  .ch-hero::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background-image: repeating-linear-gradient(
-      -60deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 9px);
-    pointer-events: none;
-  }
-  .ch-hero__inner {
-    position: relative;
-    z-index: 1;
+  body { background: #f5f6f7; }
+  .page { max-width: 1080px; margin: 0 auto; padding: 18px 14px 40px; }
+
+  /* ===== ヘッダー ===== */
+  .back { font-size: 12.5px; color: var(--ink-2); }
+  .head { margin: 12px 0 14px; }
+  .head__title {
     display: flex;
-    gap: 16px;
     align-items: center;
-    padding-top: 20px;
-    padding-bottom: 20px;
-  }
-  .ch-hero__mark {
-    flex: 0 0 auto;
-    display: grid;
-    place-items: center;
-    width: 62px;
-    height: 62px;
-    border-radius: 16px;
-    background: linear-gradient(140deg, #e4103c, #a80024);
-    box-shadow: 0 6px 18px rgba(215, 0, 46, .4), 0 1px 0 rgba(255, 255, 255, .3) inset;
-    font-size: 32px;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: 0 0 6px;
+    font-size: 26px;
     font-weight: 800;
-    line-height: 1;
+    letter-spacing: .02em;
   }
-  .ch-hero__kicker {
-    font-size: 10.5px;
-    font-weight: 800;
-    letter-spacing: .22em;
-    color: #ffc7d3;
+  .tag-sample {
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: #fdf3d8;
+    border: 1px solid #e8cf92;
+    color: #8a6100;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: .02em;
   }
-  .ch-hero__title {
-    margin: 2px 0 4px;
-    font-size: 25px;
-    font-weight: 800;
-    letter-spacing: .03em;
-    line-height: 1.15;
-  }
-  .ch-hero__lead { margin: 0; font-size: 12.5px; color: #c3d3e6; line-height: 1.6; }
-  .ch-hero__meta { display: flex; flex-wrap: wrap; gap: 6px 8px; margin-top: 10px; }
-  .ch-stat {
+  .head__lead { margin: 0 0 8px; font-size: 12.5px; color: var(--ink-2); }
+  .head__meta { margin: 0; font-size: 12.5px; color: var(--ink-2); }
+  .head__meta b { color: var(--ink); font-weight: 700; }
+  .head__meta span + span { margin-left: 18px; }
+
+  /* ===== 開催フィルタ ===== */
+  .venues { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0 10px; }
+  .venue-btn {
     display: inline-flex;
     align-items: baseline;
-    gap: 5px;
-    padding: 3px 10px;
+    gap: 6px;
+    padding: 4px 12px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, .1);
-    border: 1px solid rgba(255, 255, 255, .16);
-    font-size: 11px;
-    color: #d7e3f1;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .venue-btn:hover { background: #f2f4f7; }
+  .venue-btn__n { font-size: 11px; font-weight: 700; color: var(--ink-3); }
+  .venue-btn.is-active { background: #1565c0; border-color: #1565c0; color: #fff; }
+  .venue-btn.is-active .venue-btn__n { color: #cfe0f5; }
+
+  /* ===== 凡例 ===== */
+  .legend { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 14px; }
+  .legend__item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: var(--ink-2); }
+
+  /* 対象選手 / Botのもう一方の印 */
+  .is-focus { box-shadow: 0 0 0 2px #f59e0b; }
+  .is-mark  { box-shadow: 0 0 0 2px #111827; }
+
+  /* ===== レースカード ===== */
+  .rc {
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 14px;
+    margin-bottom: 14px;
+  }
+  .rc__head { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+  .rc__venue {
+    padding: 3px 9px;
+    border-radius: 4px;
+    background: #1f2937;
+    color: #fff;
+    font-size: 12px;
     font-weight: 700;
   }
-  .ch-stat b { font-family: var(--font-num); font-size: 14px; color: #fff; }
+  .rc__no { font-size: 17px; font-weight: 800; }
+  .rc__link { margin-left: auto; font-size: 12px; color: var(--ink-2); text-decoration: underline; }
 
-  /* ===== 固定ツールバー ===== */
-  .ch-sticky {
-    position: sticky;
-    top: var(--header-h);
-    z-index: 30;
-    background: rgba(238, 241, 245, .95);
-    backdrop-filter: blur(6px);
-    border-bottom: 1px solid var(--line);
-    padding: 10px 0;
+  /* ライン */
+  .rc__lines { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+  .rc__lbl { font-size: 12px; color: var(--ink-3); margin-right: 2px; }
+  .lgrp { display: inline-flex; gap: 4px; }
+  .lsep { color: #c3cad3; font-size: 13px; }
+
+  /* 対象選手 */
+  .rider {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px;
+    background: #fafbfc;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    margin-bottom: 14px;
   }
-  .ch-sticky .chips { margin-top: 8px; }
-  .date-nav { display: inline-flex; align-items: center; gap: 6px; }
+  .rider__name { font-size: 15px; font-weight: 800; }
+  .rider__cmt { font-size: 12.5px; color: var(--ink-2); margin-top: 1px; }
+  .rider__stat { font-size: 12px; color: var(--ink-2); margin-top: 6px; }
+  .rider__stat b { color: var(--ink); font-weight: 700; }
+  .rider__stat span + span { margin-left: 14px; }
 
+  /* 模範目 */
+  .moku__head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+  .moku__lbl { font-size: 12.5px; font-weight: 700; }
+  .copy {
+    padding: 2px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--line);
+    background: #fff;
+    color: var(--ink-2);
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .copy:hover { background: #f2f4f7; }
+  .moku__row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    padding: 5px 0;
+    font-size: 12px;
+  }
+  .moku__pos { color: var(--ink-3); font-size: 11px; margin-right: 1px; }
+  .moku__arw { color: #c3cad3; margin: 0 4px; }
+  .moku__txt {
+    margin-left: auto;
+    font-family: var(--font-num);
+    font-size: 12px;
+    color: var(--ink-3);
+    letter-spacing: .02em;
+  }
+
+  .rc__foot {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line-2);
+    font-size: 12px;
+    color: var(--ink-3);
+  }
+  .rc__foot b { color: var(--ink-2); font-weight: 700; }
+
+  .note {
+    margin-top: 26px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.8;
+  }
+
+  @media (max-width: 480px) {
+    .head__title { font-size: 22px; }
+    .head__meta span { display: block; }
+    .head__meta span + span { margin-left: 0; }
+    .moku__txt { margin-left: 0; width: 100%; }
+  }
 </style>
 </head>
 <body>
 
-<div id="siteHeader"></div>
+<div class="page">
+  <a class="back" href="index.html">← トップ</a>
 
-<div class="ch-hero">
-  <div class="wrap wrap--wide ch-hero__inner">
-    <div class="ch-hero__mark">飛</div>
-    <div>
-      <div class="ch-hero__kicker">TOBITSUKI RADAR</div>
-      <h1 class="ch-hero__title">飛びつきチャンネル</h1>
-      <p class="ch-hero__lead">
-        日付・開催を切り替えて、その日の並びを一覧で確認できます。
-      </p>
-      <div class="ch-hero__meta" id="heroMeta"></div>
-    </div>
+  <div class="head">
+    <h1 class="head__title">
+      飛びつきチャンネル
+      <span class="tag-sample">サンプルデータ表示中</span>
+    </h1>
+    <p class="head__lead">その日 飛びつきが発生しそうなレースと買い目（模範目）を掲載しています。</p>
+    <p class="head__meta" id="meta"></p>
   </div>
-</div>
 
-<div class="ch-sticky">
-  <div class="wrap wrap--wide">
-    <div class="toolbar">
-      <span class="field">
-        日付
-        <span class="date-nav">
-          <button class="btn btn--sm" id="prevDay" type="button">‹ 前日</button>
-          <input class="input" id="dateInput" type="date" />
-          <button class="btn btn--sm" id="nextDay" type="button">翌日 ›</button>
-        </span>
-      </span>
-      <span class="badge badge--navy" id="dateLabel"></span>
-      <span class="section-head__tail">
-        <a class="btn btn--sm btn--navy" id="raceLink" href="race.html">出走表を見る</a>
-      </span>
-    </div>
-    <div class="chips" id="dayChips"></div>
+  <div class="venues" id="venues"></div>
+
+  <div class="legend">
+    <span class="legend__item"><span class="bike bike-7 is-focus">7</span>対象選手</span>
+    <span class="legend__item"><span class="bike bike-2 is-mark">2</span>Botのもう一方の印</span>
   </div>
+
+  <div id="list"></div>
+
+  <p class="note">
+    当サイトは競輪を楽しむための情報提供を目的としています。車券の的中を保証するものではありません。
+    車券の購入はご自身の判断と責任において行ってください。
+  </p>
 </div>
-
-<main class="wrap wrap--wide" style="padding-top:14px;">
-  <div id="loadState" class="state">読み込み中…</div>
-  <div id="content" hidden></div>
-</main>
-
-<div id="siteFooter"></div>
 
 <script src="assets/keirin-ui.js"></script>
 <script>
@@ -141,161 +204,213 @@
   'use strict';
 
   const esc = KUI.esc;
-  const state = { date: '', days: [], dayIndex: 0 };
-
-  const el = {
-    dateInput: document.getElementById('dateInput'),
-    dateLabel: document.getElementById('dateLabel'),
-    prevDay:   document.getElementById('prevDay'),
-    nextDay:   document.getElementById('nextDay'),
-    dayChips:  document.getElementById('dayChips'),
-    heroMeta:  document.getElementById('heroMeta'),
-    loadState: document.getElementById('loadState'),
-    content:   document.getElementById('content'),
-    raceLink:  document.getElementById('raceLink')
-  };
-
-  const currentDay = () => state.days[state.dayIndex];
-
-  /* 並び文字列 "1-2-3 4-5 6" → [[1,2,3],[4,5],[6]] */
-  function parseLines(lines) {
-    return String(lines || '').trim()
-      .split(/[・\s]+/).filter(Boolean)
-      .map(g => g.split('').filter(c => /[1-9]/.test(c)).map(Number))
-      .filter(g => g.length);
-  }
 
   /* =========================================================
-     描画
+     サンプルデータ
 
-     ※ 飛びつきの判定ロジックは未実装。
-        判定を入れるときは、レースごとの結果を出す関数を1つ用意して
-        raceCard() の「判定結果の差し込み口」に描画を足せばよい。
-        state / 読み込み / 日付・開催の切り替えは判定に依存していない。
+     ※ 飛びつきの判定ロジックは未実装。画面の側だけを用意している。
+        判定を入れるときは、この SAMPLE と同じ形の配列を
+        実データから組み立てて render() に渡せばよい。
+
+        place   … 開催場
+        raceNo  … レース番号
+        lines   … 並び（ライン単位の配列）
+        focus   … 対象選手の車番
+        mark    … Botのもう一方の印の車番
+        rider   … 対象選手の情報
+        moku    … 模範目（着順ごとの車番と、その表記）
+        past    … 過去データの成立率
      ========================================================= */
-  function raceCard(day, race) {
+  const SAMPLE = {
+    date: '2026-08-15',
+    races: [
+      {
+        place: '西武園', raceNo: 3,
+        lines: [[1, 4, 6], [3], [5], [7, 2]],
+        focus: 7, mark: 1,
+        rider: { name: '伊藤嘉浩', comment: '自力自在に。', rate: '0%', rateSub: '(0/0)', s: 11 },
+        moku: [
+          { pick: [[7, 1], [7, 1], [2, 6, 3, 5]], text: '71-71-2635' },
+          { pick: [[7], [2], [1, 6, 3, 5]],       text: '7-2-1635' },
+          { pick: [[1], [6, 3, 5], [7, 2]],       text: '1-635-72' }
+        ],
+        past: { rate: '0.0%', sub: '(0/10)' }
+      },
+      {
+        place: '奈良', raceNo: 9,
+        lines: [[1, 5], [2, 6], [3], [4], [7]],
+        focus: 1, mark: 2,
+        rider: { name: '花田将司', comment: '前々。', rate: '0%', rateSub: '(0/0)', s: 6 },
+        moku: [
+          { pick: [[1, 2], [1, 2], [5, 3, 4, 7]], text: '12-12-5347' },
+          { pick: [[1], [5], [2, 3, 4, 7]],       text: '1-5-2347' },
+          { pick: [[2], [3, 4, 7], [1, 5]],       text: '2-347-15' }
+        ],
+        past: { rate: '0.0%', sub: '(0/13)' }
+      },
+      {
+        place: '前橋', raceNo: 3,
+        lines: [[3, 1, 7], [4, 2, 5], [6]],
+        focus: 3, mark: 4,
+        rider: { name: '松田大', comment: '自力自在。', rate: '100.0%', rateSub: '(1/1)', s: 3 },
+        moku: [
+          { pick: [[3, 4], [3, 4], [1, 5, 6, 7]], text: '34-34-1567' },
+          { pick: [[3], [1], [4, 5, 6, 7]],       text: '3-1-4567' },
+          { pick: [[4], [5, 6, 7], [3, 1]],       text: '4-567-31' }
+        ],
+        past: { rate: '9.5%', sub: '(2/21)' }
+      },
+      {
+        place: '静岡', raceNo: 3,
+        lines: [[2, 1, 5], [4, 3, 6], [7]],
+        focus: 2, mark: 4,
+        rider: { name: '鮫島康治', comment: '自力自在。', rate: '0%', rateSub: '(0/0)', s: 0 },
+        moku: [
+          { pick: [[2, 4], [2, 4], [1, 6, 7, 5]], text: '24-24-1675' },
+          { pick: [[2], [1], [4, 6, 7, 5]],       text: '2-1-4675' },
+          { pick: [[4], [6, 7, 5], [2, 1]],       text: '4-675-21' }
+        ],
+        past: { rate: '0%', sub: '(0/0)' }
+      },
+      {
+        place: '静岡', raceNo: 4,
+        lines: [[1, 3, 6], [4, 2, 5], [7]],
+        focus: 1, mark: 4,
+        rider: { name: '金野俊秋', comment: '自力自在。', rate: '100.0%', rateSub: '(4/4)', s: 10 },
+        moku: [
+          { pick: [[1, 4], [1, 4], [3, 5, 7, 6]], text: '14-14-3576' },
+          { pick: [[1], [3], [4, 5, 7, 6]],       text: '1-3-4576' },
+          { pick: [[4], [5, 7, 6], [1, 3]],       text: '4-576-13' }
+        ],
+        past: { rate: '集計準備中', sub: '' }
+      }
+    ]
+  };
+
+  const state = { venue: '' };   // '' = 全場
+
+  const el = {
+    meta:   document.getElementById('meta'),
+    venues: document.getElementById('venues'),
+    list:   document.getElementById('list')
+  };
+
+  /* 対象選手・もう一方の印に応じた車番バッジ */
+  function badge(car, race, size) {
+    const extra = car === race.focus ? ' is-focus' : (car === race.mark ? ' is-mark' : '');
+    const html = KUI.bikeBadge(car, size);
+    return extra ? html.replace('class="bike ', `class="bike${extra} `) : html;
+  }
+
+  const POS = ['1着', '2着', '3着'];
+
+  function raceCard(race) {
+    const lines = race.lines.map(g =>
+      `<span class="lgrp">${g.map(c => badge(c, race)).join('')}</span>`
+    ).join('<span class="lsep">/</span>');
+
+    const moku = race.moku.map(m => `
+      <div class="moku__row">
+        ${m.pick.map((cars, i) => `
+          ${i ? '<span class="moku__arw">›</span>' : ''}
+          <span class="moku__pos">${POS[i] || ''}</span>
+          ${cars.map(c => badge(c, race)).join('')}
+        `).join('')}
+        <span class="moku__txt">${esc(m.text)}</span>
+      </div>`).join('');
+
     return `
-      <div class="card" style="margin-bottom:14px;">
-        <div class="card__head">
-          <span class="badge badge--navy">${esc(race.race_num)}R</span>
-          <h2 class="card__title">${esc(race.race_name)}</h2>
-          <span class="section-head__tail">
-            <a class="btn btn--sm" href="race.html?date=${state.date}&place=${encodeURIComponent(day.place)}">
-              出走表 ›
-            </a>
-          </span>
+      <section class="rc">
+        <div class="rc__head">
+          <span class="rc__venue">${esc(race.place)}</span>
+          <span class="rc__no">${esc(race.raceNo)}R</span>
+          <a class="rc__link"
+             href="race.html?date=${esc(SAMPLE.date)}&place=${encodeURIComponent(race.place)}">出走表を見る</a>
         </div>
-        <div style="padding:12px;">
-          <div class="lines">
-            <span class="muted small">並び</span>${KUI.linesHtml(race.lines)}
+
+        <div class="rc__lines"><span class="rc__lbl">ライン</span>${lines}</div>
+
+        <div class="rider">
+          ${badge(race.focus, race, 'lg')}
+          <div>
+            <div class="rider__name">${esc(race.rider.name)}</div>
+            <div class="rider__cmt">${esc(race.rider.comment)}</div>
+            <div class="rider__stat">
+              <span>成功率 <b>${esc(race.rider.rate)}</b> ${esc(race.rider.rateSub)}</span>
+              <span>S数 <b>${esc(race.rider.s)}</b></span>
+            </div>
           </div>
-          <!-- 判定結果の差し込み口 -->
         </div>
-      </div>`;
+
+        <div class="moku">
+          <div class="moku__head">
+            <span class="moku__lbl">模範目</span>
+            <button class="copy" type="button"
+                    data-copy="${esc(race.moku.map(m => m.text).join('\n'))}">コピー</button>
+          </div>
+          ${moku}
+        </div>
+
+        <div class="rc__foot">
+          過去データ　模範目成立：
+          <b>${esc(race.past.rate)}</b>${race.past.sub ? ' ' + esc(race.past.sub) : ''}
+        </div>
+      </section>`;
+  }
+
+  function renderVenues() {
+    const counts = new Map();
+    SAMPLE.races.forEach(r => counts.set(r.place, (counts.get(r.place) || 0) + 1));
+
+    const btn = (key, label, n) =>
+      `<button class="venue-btn${state.venue === key ? ' is-active' : ''}"
+               type="button" data-venue="${esc(key)}">
+         ${esc(label)}<span class="venue-btn__n">${n}</span>
+       </button>`;
+
+    el.venues.innerHTML = btn('', '全場', SAMPLE.races.length)
+      + [...counts].map(([place, n]) => btn(place, place, n)).join('');
   }
 
   function render() {
-    const day = currentDay();
-    if (!day) return;
+    const shown = state.venue
+      ? SAMPLE.races.filter(r => r.place === state.venue)
+      : SAMPLE.races;
 
-    renderDayChips();
-    el.raceLink.href = `race.html?date=${state.date}&place=${encodeURIComponent(day.place)}`;
+    const places = new Set(SAMPLE.races.map(r => r.place));
+    el.meta.innerHTML = `
+      <span>対象日：<b>${esc(SAMPLE.date)}</b></span>
+      <span>候補：<b>${SAMPLE.races.length}</b> レース</span>
+      <span>開催：<b>${places.size}</b> 場</span>`;
 
-    const solos = day.races.reduce((n, race) =>
-      n + parseLines(race.lines).filter(g => g.length === 1).length, 0);
-
-    el.heroMeta.innerHTML = `
-      <span class="ch-stat">${esc(day.place)} ${esc(day.race_day)}日目</span>
-      <span class="ch-stat">全 <b>${day.races.length}</b> R</span>
-      <span class="ch-stat">単騎 <b>${solos}</b> 人</span>`;
-
-    el.content.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
-           padding:10px 12px;background:var(--panel);border:1px solid var(--line);
-           border-left:4px solid var(--red);border-radius:var(--radius);
-           box-shadow:var(--shadow);margin-bottom:14px;">
-        ${KUI.gradeBadge(day.grade)}
-        <span style="font-size:18px;font-weight:800;">${esc(day.place)}競輪</span>
-        <span class="badge badge--navy">${esc(day.race_day)}日目</span>
-        <span class="badge">全${day.races.length}R</span>
-      </div>
-      ${day.races.map(race => raceCard(day, race)).join('')}`;
+    renderVenues();
+    el.list.innerHTML = shown.map(raceCard).join('');
   }
 
-  function renderDayChips() {
-    el.dayChips.innerHTML = state.days.map((d, i) => `
-      <button class="chip${i === state.dayIndex ? ' is-active' : ''}" data-day="${i}" type="button">
-        ${KUI.gradeBadge(d.grade)}
-        <span>${esc(d.place)}</span>
-        <span class="chip__sub">${esc(d.race_day)}日目</span>
-      </button>`).join('');
-  }
-
-  /* =========================================================
-     読み込み
-     ========================================================= */
-  async function load(dateStr, preferPlace) {
-    state.date = dateStr;
-    el.dateInput.value = dateStr;
-    el.dateLabel.textContent = KUI.labelDate(dateStr);
-    el.content.hidden = true;
-    el.loadState.hidden = false;
-    el.loadState.className = 'state';
-    el.loadState.textContent = '読み込み中…';
-    el.dayChips.innerHTML = '';
-    el.heroMeta.innerHTML = '';
-
-    try {
-      const days = await KUI.fetchRaceInfo(dateStr);
-      if (!Array.isArray(days) || !days.length) throw new Error('empty');
-
-      state.days = days;
-      state.dayIndex = 0;
-      if (preferPlace) {
-        const i = days.findIndex(d => d.place === preferPlace);
-        if (i >= 0) state.dayIndex = i;
-      }
-      el.loadState.hidden = true;
-      el.content.hidden = false;
-      render();
-    } catch (e) {
-      state.days = [];
-      el.content.hidden = true;
-      el.loadState.hidden = false;
-      el.loadState.className = 'state state--error';
-      el.loadState.textContent = `${KUI.labelDate(dateStr)}の出走表データが見つかりませんでした`;
-    }
-  }
-
-  /* =========================================================
-     イベント
-     ========================================================= */
-  el.dateInput.addEventListener('change', e => load(e.target.value));
-  el.prevDay.addEventListener('click', () => load(KUI.shiftDate(state.date, -1)));
-  el.nextDay.addEventListener('click', () => load(KUI.shiftDate(state.date, 1)));
-
-  el.dayChips.addEventListener('click', e => {
-    const btn = e.target.closest('[data-day]');
+  /* 開催フィルタ */
+  el.venues.addEventListener('click', e => {
+    const btn = e.target.closest('[data-venue]');
     if (!btn) return;
-    state.dayIndex = Number(btn.dataset.day);
+    state.venue = btn.dataset.venue;
     render();
-    window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
-  /* =========================================================
-     初期化（JST 22時で翌日へ切り替え）
-     ========================================================= */
-  function defaultDate() {
-    const now = new Date();
-    const base = new Date(now);
-    if (now.getHours() >= 22) base.setDate(base.getDate() + 1);
-    return KUI.ymd(base);
-  }
+  /* 模範目のコピー */
+  el.list.addEventListener('click', async e => {
+    const btn = e.target.closest('.copy');
+    if (!btn) return;
+    try {
+      await navigator.clipboard.writeText(btn.dataset.copy);
+      const before = btn.textContent;
+      btn.textContent = 'コピーしました';
+      setTimeout(() => { btn.textContent = before; }, 1200);
+    } catch (err) {
+      btn.textContent = 'コピーできません';
+      setTimeout(() => { btn.textContent = 'コピー'; }, 1600);
+    }
+  });
 
-  KUI.mountChrome('channel.html');
-
-  const params = new URLSearchParams(location.search);
-  load(params.get('date') || defaultDate(), params.get('place'));
+  render();
 })();
 </script>
 </body>

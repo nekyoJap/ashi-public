@@ -88,44 +88,6 @@
   .ch-sticky .chips { margin-top: 8px; }
   .date-nav { display: inline-flex; align-items: center; gap: 6px; }
 
-  /* ===== 飛びつき度 ===== */
-  .tb-rank {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 3px 10px;
-    border-radius: 999px;
-    font-size: 12px;
-    font-weight: 800;
-    color: #fff;
-  }
-  .tb-rank b { font-family: var(--font-num); font-size: 14px; }
-  .tb-rank--s { background: linear-gradient(140deg, #e4103c, #a80024); }
-
-  /* ===== 飛びつき図 ===== */
-  .tb-move {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    padding: 10px 12px;
-    background: #fff6f8;
-    border: 1px solid #f3c9d4;
-    border-radius: var(--radius-sm);
-    margin-bottom: 8px;
-  }
-  .tb-move:last-of-type { margin-bottom: 0; }
-  .tb-move__who { display: inline-flex; align-items: center; gap: 5px; font-weight: 800; }
-  .tb-cmt {
-    flex: 1 1 260px;
-    min-width: 0;
-    font-size: 12px;
-    line-height: 1.65;
-    color: var(--ink-2);
-    font-weight: 400;
-  }
-
-  .tb-none { padding: 18px 12px; text-align: center; color: var(--ink-3); font-size: 12.5px; font-weight: 700; }
 </style>
 </head>
 <body>
@@ -139,7 +101,7 @@
       <div class="ch-hero__kicker">TOBITSUKI RADAR</div>
       <h1 class="ch-hero__title">飛びつきチャンネル</h1>
       <p class="ch-hero__lead">
-        コメントに「自力自在」「自在」がある選手を飛びつき候補として拾い、該当レースを抽出します。
+        日付・開催を切り替えて、その日の並びを一覧で確認できます。
       </p>
       <div class="ch-hero__meta" id="heroMeta"></div>
     </div>
@@ -158,13 +120,6 @@
         </span>
       </span>
       <span class="badge badge--navy" id="dateLabel"></span>
-      <span class="field">
-        表示
-        <select class="input" id="filterMode">
-          <option value="hit" selected>候補ありのみ</option>
-          <option value="all">すべてのレース</option>
-        </select>
-      </span>
       <span class="section-head__tail">
         <a class="btn btn--sm btn--navy" id="raceLink" href="race.html">出走表を見る</a>
       </span>
@@ -186,7 +141,7 @@
   'use strict';
 
   const esc = KUI.esc;
-  const state = { date: '', days: [], dayIndex: 0, filterMode: 'hit' };
+  const state = { date: '', days: [], dayIndex: 0 };
 
   const el = {
     dateInput: document.getElementById('dateInput'),
@@ -194,7 +149,6 @@
     prevDay:   document.getElementById('prevDay'),
     nextDay:   document.getElementById('nextDay'),
     dayChips:  document.getElementById('dayChips'),
-    filterMode: document.getElementById('filterMode'),
     heroMeta:  document.getElementById('heroMeta'),
     loadState: document.getElementById('loadState'),
     content:   document.getElementById('content'),
@@ -202,33 +156,6 @@
   };
 
   const currentDay = () => state.days[state.dayIndex];
-
-  /* =========================================================
-     飛びつき判定（暫定）
-
-     飛びつき = 自分のラインを持たない選手が、他ラインの番手に
-     飛びついてその位置を奪う戦法。
-
-     本来の判定ロジックは後日差し替える。現状は暫定として、
-     コメントに「自力自在」または「自在」を含む選手を
-     飛びつき候補として拾う。
-
-     差し替えるときは findCandidates() だけを書き換えればよい。
-     描画側は candidates 配列の形だけに依存している。
-     ========================================================= */
-  const TB_PATTERNS = [
-    { key: 'jiriki', label: '自力自在' },
-    { key: 'jizai',  label: '自在' }
-  ];
-
-  /* 「自力自在」は「自在」を含むため、長い方から先に判定する */
-  function matchComment(text) {
-    const t = String(text || '');
-    for (const pat of TB_PATTERNS) {
-      if (t.indexOf(pat.label) >= 0) return pat;
-    }
-    return null;
-  }
 
   /* 並び文字列 "1-2-3 4-5 6" → [[1,2,3],[4,5],[6]] */
   function parseLines(lines) {
@@ -238,71 +165,31 @@
       .filter(g => g.length);
   }
 
-  /* ライン内での位置。飛びつきは番手争いなので位置が判断材料になる */
-  function positionOf(groups, car) {
-    for (const g of groups) {
-      const i = g.indexOf(car);
-      if (i < 0) continue;
-      if (g.length === 1) return { group: g, index: i, label: '単騎' };
-      if (i === 0) return { group: g, index: i, label: '先頭' };
-      if (i === 1) return { group: g, index: i, label: '番手' };
-      return { group: g, index: i, label: `${i + 1}番手` };
-    }
-    return { group: [], index: -1, label: '並び不明' };
-  }
-
-  function findCandidates(race) {
-    const groups = parseLines(race.lines);
-    return (race.racers || []).map(r => {
-      const hit = matchComment(r['コメント']);
-      if (!hit) return null;
-      return { racer: r, hit, pos: positionOf(groups, Number(r['車番'])) };
-    }).filter(Boolean);
-  }
-
   /* =========================================================
      描画
+
+     ※ 飛びつきの判定ロジックは未実装。
+        判定を入れるときは、レースごとの結果を出す関数を1つ用意して
+        raceCard() の「判定結果の差し込み口」に描画を足せばよい。
+        state / 読み込み / 日付・開催の切り替えは判定に依存していない。
      ========================================================= */
-  function candidateHtml(c) {
-    const r = c.racer;
-    return `
-      <div class="tb-move">
-        <span class="tb-move__who">
-          ${KUI.bikeBadge(r['車番'], 'lg')}
-          <span>${esc(r['選手名'])}</span>
-          <span class="badge badge--red">${esc(c.hit.label)}</span>
-          <span class="muted small">${esc(c.pos.label)}</span>
-        </span>
-        <span class="tb-cmt">${esc(r['コメント'] ?? '')}</span>
-      </div>`;
-  }
-
-  function raceCard(day, race, cands) {
-    const body = cands.length
-      ? cands.map(candidateHtml).join('')
-      : `<div class="tb-none">コメントに「自力自在」「自在」のある選手なし</div>`;
-
+  function raceCard(day, race) {
     return `
       <div class="card" style="margin-bottom:14px;">
         <div class="card__head">
           <span class="badge badge--navy">${esc(race.race_num)}R</span>
           <h2 class="card__title">${esc(race.race_name)}</h2>
           <span class="section-head__tail">
-            ${cands.length
-              ? `<span class="tb-rank tb-rank--s">候補 <b>${cands.length}</b></span>`
-              : '<span class="badge">候補なし</span>'}
+            <a class="btn btn--sm" href="race.html?date=${state.date}&place=${encodeURIComponent(day.place)}">
+              出走表 ›
+            </a>
           </span>
         </div>
         <div style="padding:12px;">
-          <div class="lines" style="margin-bottom:10px;">
+          <div class="lines">
             <span class="muted small">並び</span>${KUI.linesHtml(race.lines)}
           </div>
-          ${body}
-          <div style="margin-top:10px;">
-            <a class="btn btn--sm" href="race.html?date=${state.date}&place=${encodeURIComponent(day.place)}">
-              ${esc(race.race_num)}R の出走表 ›
-            </a>
-          </div>
+          <!-- 判定結果の差し込み口 -->
         </div>
       </div>`;
   }
@@ -314,16 +201,13 @@
     renderDayChips();
     el.raceLink.href = `race.html?date=${state.date}&place=${encodeURIComponent(day.place)}`;
 
-    const analyzed = day.races.map(race => ({ race, cands: findCandidates(race) }));
-    const hitRaces = analyzed.filter(x => x.cands.length);
-    const total = hitRaces.reduce((n, x) => n + x.cands.length, 0);
-    const shown = state.filterMode === 'all' ? analyzed : hitRaces;
+    const solos = day.races.reduce((n, race) =>
+      n + parseLines(race.lines).filter(g => g.length === 1).length, 0);
 
     el.heroMeta.innerHTML = `
       <span class="ch-stat">${esc(day.place)} ${esc(day.race_day)}日目</span>
       <span class="ch-stat">全 <b>${day.races.length}</b> R</span>
-      <span class="ch-stat">候補あり <b>${hitRaces.length}</b> R</span>
-      <span class="ch-stat">候補選手 <b>${total}</b> 人</span>`;
+      <span class="ch-stat">単騎 <b>${solos}</b> 人</span>`;
 
     el.content.innerHTML = `
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;
@@ -333,11 +217,9 @@
         ${KUI.gradeBadge(day.grade)}
         <span style="font-size:18px;font-weight:800;">${esc(day.place)}競輪</span>
         <span class="badge badge--navy">${esc(day.race_day)}日目</span>
-        <span class="badge">表示 ${shown.length} / ${day.races.length}R</span>
+        <span class="badge">全${day.races.length}R</span>
       </div>
-      ${shown.length
-        ? shown.map(x => raceCard(day, x.race, x.cands)).join('')
-        : `<div class="state">飛びつき候補のいるレースはありませんでした</div>`}`;
+      ${day.races.map(race => raceCard(day, race)).join('')}`;
   }
 
   function renderDayChips() {
@@ -392,11 +274,6 @@
   el.prevDay.addEventListener('click', () => load(KUI.shiftDate(state.date, -1)));
   el.nextDay.addEventListener('click', () => load(KUI.shiftDate(state.date, 1)));
 
-  el.filterMode.addEventListener('change', e => {
-    state.filterMode = e.target.value;
-    if (state.days.length) render();
-  });
-
   el.dayChips.addEventListener('click', e => {
     const btn = e.target.closest('[data-day]');
     if (!btn) return;
@@ -416,7 +293,6 @@
   }
 
   KUI.mountChrome('channel.html');
-  state.filterMode = el.filterMode.value;
 
   const params = new URLSearchParams(location.search);
   load(params.get('date') || defaultDate(), params.get('place'));

@@ -163,22 +163,52 @@
     return 'login.html?next=' + encodeURIComponent(to);
   }
 
+  /* ---------- 管理者判定（仮実装） ----------
+
+     管理者向け画面（評価入力・TSV出力）を一般の導線から隠すためのもの。
+     静的サイトではURLを直接叩けば誰でも開けるため、
+     これは「見せない」だけで、保護にはなっていない。
+     アクセス制御は Phase 2 でサーバー側に実装する。
+
+     ?admin=1 で有効化、?admin=0 で解除し、以後は保持する。
+     ------------------------------------------------- */
+  const ADMIN_KEY = 'asilog:admin';
+
+  function isAdmin() {
+    try {
+      const q = new URLSearchParams(location.search).get('admin');
+      if (q === '1') { localStorage.setItem(ADMIN_KEY, '1'); return true; }
+      if (q === '0') { localStorage.setItem(ADMIN_KEY, '0'); return false; }
+      return localStorage.getItem(ADMIN_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setAdmin(on) {
+    try {
+      localStorage.setItem(ADMIN_KEY, on ? '1' : '0');
+    } catch (e) { /* プライベートモード等では保持できない */ }
+  }
+
   /* ---------- 共通ヘッダー ---------- */
   const NAV = [
+    { href: 'index.html', label: 'トップ' },
     { href: 'channel.html', label: '飛びつきチャンネル' },
     { href: 'race.html', label: 'レース情報' },
-    { href: 'result.html', label: 'レース結果' }
+    /* レース結果は評価入力を含む管理者向け画面。一般の導線には出さない */
+    { href: 'result.html', label: 'レース結果', admin: true }
   ];
 
   function renderHeader(currentHref) {
-    const links = NAV.map(n =>
+    const links = NAV.filter(n => !n.admin || isAdmin()).map(n =>
       `<a href="${n.href}"${n.href === currentHref ? ' aria-current="page"' : ''}>${n.label}</a>`
     ).join('');
 
     return `
       <header class="site-header">
         <div class="site-header__inner">
-          <a class="brand" href="channel.html">
+          <a class="brand" href="index.html">
             <span class="brand__mark">飛</span>
             <span>
               <span class="brand__name">飛びつき</span>
@@ -219,6 +249,7 @@
     fetchRaceInfo, fetchRaceResult,
     evalKey, loadEvalRaw, autoResize,
     MEMBER_KEY, isMember, setMember, loginUrl,
+    ADMIN_KEY, isAdmin, setAdmin,
     renderHeader, renderFooter, mountChrome
   };
 })(window);

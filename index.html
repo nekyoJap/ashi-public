@@ -1,79 +1,314 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ASILOG KEIRIN | 競輪レース情報</title>
-  <meta name="description" content="競輪の出走表・レース結果を掲載しています。" />
-  <script src="https://cdn.tailwindcss.com"></script>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>飛びつきチャンネル | 競輪の出走表・レース情報</title>
+<meta name="description" content="その日 飛びつきが発生しそうなレースと買い目、出走表を掲載しています。" />
+<link rel="stylesheet" href="assets/keirin-ui.css" />
+<style>
+  body { background: #f5f6f7; }
+
+  /* ===== ヒーロー ===== */
+  .hero {
+    position: relative;
+    color: #fff;
+    background:
+      radial-gradient(120% 150% at 85% 0%, rgba(215, 0, 46, .55) 0%, rgba(215, 0, 46, 0) 58%),
+      linear-gradient(135deg, #16355e 0%, #0e2544 55%, #091a30 100%);
+    overflow: hidden;
+  }
+  .hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image: repeating-linear-gradient(
+      -60deg, rgba(255, 255, 255, .05) 0 1px, transparent 1px 9px);
+    pointer-events: none;
+  }
+  .hero__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 40px 16px 44px;
+  }
+  .hero__brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .hero__mark {
+    display: grid;
+    place-items: center;
+    width: 42px;
+    height: 42px;
+    border-radius: 11px;
+    background: linear-gradient(140deg, #e4103c, #a80024);
+    box-shadow: 0 5px 14px rgba(215, 0, 46, .4), 0 1px 0 rgba(255, 255, 255, .3) inset;
+    font-size: 22px;
+    font-weight: 800;
+  }
+  .hero__brandname { font-size: 15px; font-weight: 800; letter-spacing: .04em; }
+  .hero__brandsub {
+    display: block;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: .24em;
+    color: #9fb4cd;
+  }
+  .hero__kicker {
+    font-size: 10.5px;
+    font-weight: 800;
+    letter-spacing: .24em;
+    color: #ffc7d3;
+  }
+  .hero__title {
+    margin: 6px 0 10px;
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: .02em;
+    line-height: 1.12;
+  }
+  .hero__lead {
+    margin: 0 0 22px;
+    max-width: 34em;
+    font-size: 14px;
+    color: #c3d3e6;
+    line-height: 1.8;
+  }
+  .cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 22px;
+    border-radius: 8px;
+    background: linear-gradient(140deg, #e4103c, #c0002e);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    box-shadow: 0 6px 18px rgba(215, 0, 46, .35);
+  }
+  .cta:hover { background: linear-gradient(140deg, #f01e49, #a80024); text-decoration: none; }
+  .cta__arw { font-size: 17px; }
+
+  /* ===== 本文 ===== */
+  .main { max-width: 940px; margin: 0 auto; padding: 0 16px 44px; }
+
+  .member-bar {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin: -22px 0 26px;
+    position: relative;
+    z-index: 2;
+    padding: 12px 16px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    box-shadow: var(--shadow);
+    font-size: 12.5px;
+  }
+  .member-bar__on {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: #e8f3e8;
+    border: 1px solid #bcd9bd;
+    color: #2b5c2f;
+    font-weight: 700;
+  }
+  .member-bar__spacer { margin-left: auto; }
+
+  .sec-title {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    margin: 0 0 12px;
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .sec-title span {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: .2em;
+    color: var(--ink-3);
+  }
+
+  .cards { display: grid; gap: 14px; grid-template-columns: repeat(2, 1fr); margin-bottom: 30px; }
+  .card-nav {
+    display: block;
+    padding: 20px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: inherit;
+    transition: border-color .15s, transform .15s;
+  }
+  .card-nav:hover {
+    border-color: var(--navy);
+    transform: translateY(-2px);
+    text-decoration: none;
+  }
+  .card-nav__icon {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 38px;
+    margin-bottom: 12px;
+    border-radius: 9px;
+    background: #eef2f7;
+    font-size: 19px;
+  }
+  .card-nav--main .card-nav__icon { background: #fdeaef; }
+  .card-nav__name { font-size: 15.5px; font-weight: 800; margin-bottom: 5px; }
+  .card-nav__desc { font-size: 12.5px; color: var(--ink-2); line-height: 1.7; }
+  .card-nav__more { margin-top: 12px; font-size: 12px; font-weight: 700; color: var(--red); }
+
+  .admin {
+    padding: 14px 16px;
+    background: #fbfbfc;
+    border: 1px dashed #c8d1dc;
+    border-radius: 8px;
+    margin-bottom: 26px;
+  }
+  .admin__head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .admin__tag {
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: #40506a;
+    color: #fff;
+    font-size: 10.5px;
+    font-weight: 700;
+  }
+  .admin__note { font-size: 11.5px; color: var(--ink-3); margin: 8px 0 0; line-height: 1.7; }
+
+  .foot {
+    max-width: 940px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+    border-top: 1px solid var(--line);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.9;
+  }
+  .foot a { color: var(--ink-2); }
+
+  @media (max-width: 620px) {
+    .hero__inner { padding: 30px 16px 34px; }
+    .hero__title { font-size: 29px; }
+    .cards { grid-template-columns: 1fr; }
+  }
+</style>
 </head>
-<body class="bg-gray-100 text-gray-900">
-  <div class="max-w-3xl mx-auto p-4 py-10">
+<body>
 
-    <header class="mb-10">
-      <h1 class="text-3xl font-bold mb-2">ASILOG KEIRIN</h1>
-      <p class="text-gray-600">競輪の出走表・レース結果を掲載しています。</p>
-    </header>
-
-    <nav class="grid sm:grid-cols-2 gap-4 mb-10">
-      <a href="channel.html"
-         class="block sm:col-span-2 bg-white border rounded-lg p-6 hover:border-gray-900 transition">
-        <div class="text-2xl mb-2">📺</div>
-        <h2 class="font-bold mb-1">飛びつきチャンネル</h2>
-        <p class="text-sm text-gray-600">飛びつきが発生しそうなレースと買い目（模範目）を掲載しています。</p>
-      </a>
-
-      <a href="race.html"
-         class="block bg-white border rounded-lg p-6 hover:border-gray-900 transition">
-        <div class="text-2xl mb-2">📋</div>
-        <h2 class="font-bold mb-1">レース情報（出走表）</h2>
-        <p class="text-sm text-gray-600">本日開催のレース・出走選手を確認できます。</p>
-      </a>
-
-      <a href="result.html"
-         class="block bg-white border rounded-lg p-6 hover:border-gray-900 transition">
-        <div class="text-2xl mb-2">🏁</div>
-        <h2 class="font-bold mb-1">レース結果</h2>
-        <p class="text-sm text-gray-600">確定した着順・レース映像を確認できます。</p>
-      </a>
-    </nav>
-
-    <div id="memberBar" class="mb-8 flex items-center gap-3 text-sm"></div>
-
-    <footer class="border-t pt-6 text-sm text-gray-500">
-      <a href="company/" class="hover:text-gray-900 underline">運営会社</a>
-      <p class="mt-4 text-xs leading-relaxed">
-        当サイトは競輪を楽しむための情報提供を目的としています。
-        車券の的中を保証するものではありません。車券の購入はご自身の判断と責任において行ってください。
-      </p>
-    </footer>
-
+<div class="hero">
+  <div class="hero__inner">
+    <div class="hero__brand">
+      <span class="hero__mark">飛</span>
+      <span>
+        <span class="hero__brandname">飛びつき</span>
+        <span class="hero__brandsub">KEIRIN NAVI</span>
+      </span>
+    </div>
+    <div class="hero__kicker">TOBITSUKI CHANNEL</div>
+    <h1 class="hero__title">飛びつきを、<br>読み切る。</h1>
+    <p class="hero__lead">
+      その日 飛びつきが発生しそうなレースと買い目を掲載しています。
+      出走表・レース結果とあわせて、1日の組み立てをここで完結できます。
+    </p>
+    <a class="cta" href="channel.html">
+      今日の飛びつきを見る <span class="cta__arw">›</span>
+    </a>
   </div>
-  <script src="assets/keirin-ui.js"></script>
-  <script>
-    // ログイン状態の表示と導線。判定は keirin-ui.js の KUI に寄せている
-    (function () {
-      const bar = document.getElementById('memberBar');
+</div>
 
-      function paint() {
-        bar.innerHTML = KUI.isMember()
-          ? `<span class="rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-bold">ログイン中</span>
-             <span class="text-gray-600">会員限定の脚評価が表示されます。</span>
-             <a href="#" id="logout" class="ml-auto underline hover:text-gray-900">ログアウト</a>`
-          : `<a href="${KUI.loginUrl('index.html')}"
-                class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-bold hover:bg-gray-700">ログイン</a>
-             <span class="text-gray-600">ログインすると脚評価・評価コメントが表示されます。</span>`;
-      }
+<div class="main">
+  <div class="member-bar" id="memberBar"></div>
 
-      bar.addEventListener('click', e => {
-        if (!e.target.closest('#logout')) return;
-        e.preventDefault();
-        KUI.setMember(false);
-        paint();
-      });
+  <h2 class="sec-title">コンテンツ <span>CONTENTS</span></h2>
+  <div class="cards">
+    <a class="card-nav card-nav--main" href="channel.html">
+      <div class="card-nav__icon">🎯</div>
+      <div class="card-nav__name">飛びつきチャンネル</div>
+      <p class="card-nav__desc">
+        飛びつきが発生しそうなレースと買い目（模範目）を、開催場ごとに確認できます。
+      </p>
+      <div class="card-nav__more">見る ›</div>
+    </a>
 
-      paint();
-    })();
-  </script>
+    <a class="card-nav" href="race.html">
+      <div class="card-nav__icon">📋</div>
+      <div class="card-nav__name">レース情報（出走表）</div>
+      <p class="card-nav__desc">
+        本日開催のレース・出走選手と並びを確認できます。会員は脚評価も表示されます。
+      </p>
+      <div class="card-nav__more">見る ›</div>
+    </a>
+  </div>
+
+  <div class="admin" id="adminBox" hidden></div>
+</div>
+
+<div class="foot">
+  <a href="company/">運営会社</a>
+  <p>
+    当サイトは競輪を楽しむための情報提供を目的としています。車券の的中を保証するものではありません。
+    車券の購入はご自身の判断と責任において行ってください。
+  </p>
+</div>
+
+<script src="assets/keirin-ui.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const bar = document.getElementById('memberBar');
+  const adminBox = document.getElementById('adminBox');
+
+  function paint() {
+    bar.innerHTML = KUI.isMember()
+      ? `<span class="member-bar__on">ログイン中</span>
+         <span>会員限定の脚評価・評価コメントが表示されます。</span>
+         <a class="member-bar__spacer" href="#" id="logout">ログアウト</a>`
+      : `<a class="btn btn--sm btn--primary" href="${KUI.loginUrl('index.html')}">ログイン</a>
+         <span>ログインすると、脚評価・評価コメントが表示されます。</span>`;
+  }
+
+  bar.addEventListener('click', e => {
+    if (!e.target.closest('#logout')) return;
+    e.preventDefault();
+    KUI.setMember(false);
+    paint();
+  });
+
+  /* 管理者向けの案内は、管理者として開いた端末にだけ出す。
+     非管理者のDOMには管理画面へのリンクを一切残さない */
+  function paintAdmin() {
+    const on = KUI.isAdmin();
+    adminBox.hidden = !on;
+    adminBox.innerHTML = on ? `
+      <div class="admin__head">
+        <span class="admin__tag">管理</span>
+        <strong style="font-size:13.5px;">レース結果・評価入力</strong>
+      </div>
+      <a class="btn btn--sm" href="result.html">レース結果を開く ›</a>
+      <a class="btn btn--sm" href="#" id="adminOff">管理表示をやめる</a>
+      <p class="admin__note">
+        管理者向けの画面です。この案内は <code>?admin=1</code> を付けて開いた端末にのみ表示されます。
+        静的サイトのためURLを直接開けば誰でも到達できます。
+        アクセス制御は Phase 2 でサーバー側に実装します。
+      </p>` : '';
+  }
+
+  adminBox.addEventListener('click', e => {
+    if (!e.target.closest('#adminOff')) return;
+    e.preventDefault();
+    KUI.setAdmin(false);
+    paintAdmin();
+  });
+
+  paintAdmin();
+
+  paint();
+})();
+</script>
 </body>
 </html>

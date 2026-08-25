@@ -11,7 +11,17 @@
   .page { max-width: 1080px; margin: 0 auto; padding: 18px 14px 40px; }
 
   /* ===== ヘッダー ===== */
+  .topbar { display: flex; align-items: center; gap: 10px; }
   .back { font-size: 12.5px; color: var(--ink-2); }
+  .topbar__member { margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .topbar__on {
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #e8f3e8;
+    border: 1px solid #bcd9bd;
+    color: #2b5c2f;
+    font-weight: 700;
+  }
   .head { margin: 12px 0 14px; }
   .head__title {
     display: flex;
@@ -172,7 +182,10 @@
 <body>
 
 <div class="page">
-  <a class="back" href="index.html">← トップ</a>
+  <div class="topbar">
+    <a class="back" href="index.html">← トップ</a>
+    <span class="topbar__member" id="memberNav"></span>
+  </div>
 
   <div class="head">
     <h1 class="head__title">
@@ -288,6 +301,22 @@
   };
 
   const state = { venue: '' };   // '' = 全場
+
+  /* ログイン状態の表示と導線。判定は KUI に寄せている */
+  const memberNav = document.getElementById('memberNav');
+
+  function paintMember() {
+    memberNav.innerHTML = KUI.isMember()
+      ? `<span class="topbar__on">ログイン中</span><a href="#" id="logout">ログアウト</a>`
+      : `<a href="${KUI.loginUrl('channel.html')}">ログイン</a>`;
+  }
+
+  memberNav.addEventListener('click', e => {
+    if (!e.target.closest('#logout')) return;
+    e.preventDefault();
+    KUI.setMember(false);
+    paintMember();
+  });
 
   const el = {
     meta:   document.getElementById('meta'),
@@ -410,6 +439,7 @@
     }
   });
 
+  paintMember();
   render();
 })();
 </script>

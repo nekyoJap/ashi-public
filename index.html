@@ -38,6 +38,8 @@
       </a>
     </nav>
 
+    <div id="memberBar" class="mb-8 flex items-center gap-3 text-sm"></div>
+
     <footer class="border-t pt-6 text-sm text-gray-500">
       <a href="company/" class="hover:text-gray-900 underline">運営会社</a>
       <p class="mt-4 text-xs leading-relaxed">
@@ -47,5 +49,31 @@
     </footer>
 
   </div>
+  <script src="assets/keirin-ui.js"></script>
+  <script>
+    // ログイン状態の表示と導線。判定は keirin-ui.js の KUI に寄せている
+    (function () {
+      const bar = document.getElementById('memberBar');
+
+      function paint() {
+        bar.innerHTML = KUI.isMember()
+          ? `<span class="rounded-full bg-green-100 text-green-800 px-3 py-1 text-xs font-bold">ログイン中</span>
+             <span class="text-gray-600">会員限定の脚評価が表示されます。</span>
+             <a href="#" id="logout" class="ml-auto underline hover:text-gray-900">ログアウト</a>`
+          : `<a href="${KUI.loginUrl('index.html')}"
+                class="rounded-lg bg-gray-900 text-white px-4 py-2 text-sm font-bold hover:bg-gray-700">ログイン</a>
+             <span class="text-gray-600">ログインすると脚評価・評価コメントが表示されます。</span>`;
+      }
+
+      bar.addEventListener('click', e => {
+        if (!e.target.closest('#logout')) return;
+        e.preventDefault();
+        KUI.setMember(false);
+        paint();
+      });
+
+      paint();
+    })();
+  </script>
 </body>
 </html>

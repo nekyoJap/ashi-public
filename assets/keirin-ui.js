@@ -133,6 +133,36 @@
     el.style.height = el.scrollHeight + 'px';
   }
 
+  /* ---------- 会員状態（仮実装） ----------
+
+     注意: これは認証ではない。静的サイトである以上、
+     クライアント側の状態は誰でも書き換えられる。
+     本番の出し分けは Phase 2 でサーバー側に実装し、
+     非会員には有料データ自体を配信しない方式へ置き換える。
+     ------------------------------------------------- */
+  const MEMBER_KEY = 'asilog:member';
+
+  function isMember() {
+    try {
+      if (new URLSearchParams(location.search).get('preview') === 'member') return true;
+      return localStorage.getItem(MEMBER_KEY) === '1';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function setMember(on) {
+    try {
+      localStorage.setItem(MEMBER_KEY, on ? '1' : '0');
+    } catch (e) { /* プライベートモード等では保持できない */ }
+  }
+
+  /* ログイン後に戻る先を保持したログインURL */
+  function loginUrl(next) {
+    const to = next || (location.pathname.split('/').pop() || 'index.html') + location.search;
+    return 'login.html?next=' + encodeURIComponent(to);
+  }
+
   /* ---------- 共通ヘッダー ---------- */
   const NAV = [
     { href: 'channel.html', label: '飛びつきチャンネル' },
@@ -188,6 +218,7 @@
     gradeKey, gradeBadge, bikeBadge, legBadge, linesHtml, dayLabel,
     fetchRaceInfo, fetchRaceResult,
     evalKey, loadEvalRaw, autoResize,
+    MEMBER_KEY, isMember, setMember, loginUrl,
     renderHeader, renderFooter, mountChrome
   };
 })(window);

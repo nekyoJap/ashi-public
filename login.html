@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ログイン | 飛びつきチャンネル</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="assets/keirin-ui.css" />
+<style>
+  body { background: #f5f6f7; }
+  .page { max-width: 420px; margin: 0 auto; padding: 18px 14px 40px; }
+  .back { font-size: 12.5px; color: var(--ink-2); }
+
+  .card-login {
+    margin-top: 14px;
+    padding: 22px 20px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .card-login h1 {
+    margin: 0 0 4px;
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: .02em;
+  }
+  .card-login__lead { margin: 0 0 16px; font-size: 12.5px; color: var(--ink-2); }
+
+  .tag-temp {
+    display: inline-block;
+    margin-bottom: 14px;
+    padding: 3px 9px;
+    border-radius: 5px;
+    background: #fdf3d8;
+    border: 1px solid #e8cf92;
+    color: #8a6100;
+    font-size: 11.5px;
+    font-weight: 700;
+  }
+
+  .fld { margin-bottom: 12px; }
+  .fld label {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ink-2);
+  }
+  .fld input {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+  }
+  .fld input:focus { outline: 2px solid #1565c0; outline-offset: -1px; }
+
+  .submit {
+    width: 100%;
+    margin-top: 4px;
+    padding: 10px 12px;
+    border: 0;
+    border-radius: 6px;
+    background: #1565c0;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .submit:hover { background: #11529e; }
+
+  .signed {
+    padding: 10px 12px;
+    background: #eef6ee;
+    border: 1px solid #bcd9bd;
+    border-radius: 6px;
+    font-size: 12.5px;
+    color: #2b5c2f;
+    margin-bottom: 14px;
+  }
+  .links { margin-top: 16px; font-size: 12.5px; }
+  .links a { margin-right: 14px; }
+
+  .caution {
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 1px solid var(--line-2);
+    font-size: 11.5px;
+    color: var(--ink-3);
+    line-height: 1.8;
+  }
+</style>
+</head>
+<body>
+
+<div class="page">
+  <a class="back" href="index.html">← トップ</a>
+
+  <div class="card-login">
+    <span class="tag-temp">仮ログイン</span>
+    <h1>ログイン</h1>
+    <p class="card-login__lead" id="lead">会員向けの表示に切り替えます。</p>
+
+    <div id="signedBox" class="signed" hidden>現在ログイン中です。</div>
+
+    <form id="form" novalidate>
+      <div class="fld">
+        <label for="email">メールアドレス</label>
+        <input id="email" type="email" autocomplete="username" placeholder="you@example.com" />
+      </div>
+      <div class="fld">
+        <label for="password">パスワード</label>
+        <input id="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+      </div>
+      <button class="submit" type="submit">ログイン</button>
+    </form>
+
+    <div class="links" id="links"></div>
+
+    <p class="caution">
+      これは画面と導線を確認するための<b>仮のログインです。認証は行っていません</b>。
+      入力内容は送信も保存もされず、どんな値でもログイン状態になります。
+      実際の認証と課金は Phase 2 でサーバー側に実装します。
+    </p>
+  </div>
+</div>
+
+<script src="assets/keirin-ui.js"></script>
+<script>
+(function () {
+  'use strict';
+
+  const params = new URLSearchParams(location.search);
+
+  /* 戻り先。外部URLへ飛ばされないよう、同一ディレクトリの
+     相対パスだけを受け付ける */
+  function safeNext() {
+    const raw = params.get('next') || 'index.html';
+    if (/^[\w.-]+\.html(\?[^#]*)?$/.test(raw)) return raw;
+    return 'index.html';
+  }
+
+  const next = safeNext();
+  const el = {
+    form:      document.getElementById('form'),
+    lead:      document.getElementById('lead'),
+    signedBox: document.getElementById('signedBox'),
+    links:     document.getElementById('links')
+  };
+
+  function paint() {
+    const on = KUI.isMember();
+    el.signedBox.hidden = !on;
+    el.form.hidden = on;
+    el.lead.textContent = on
+      ? '会員向けの表示が有効になっています。'
+      : '会員向けの表示に切り替えます。';
+
+    el.links.innerHTML = on
+      ? `<a href="${KUI.esc(next)}">続ける ›</a><a href="#" id="logout">ログアウト</a>`
+      : `<a href="index.html">ログインせずに戻る</a>`;
+  }
+
+  el.form.addEventListener('submit', e => {
+    e.preventDefault();
+    KUI.setMember(true);
+    location.href = next;
+  });
+
+  el.links.addEventListener('click', e => {
+    const out = e.target.closest('#logout');
+    if (!out) return;
+    e.preventDefault();
+    KUI.setMember(false);
+    paint();
+  });
+
+  paint();
+})();
+</script>
+</body>
+</html>

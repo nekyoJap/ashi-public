@@ -66,26 +66,6 @@
     letter-spacing: .1em;
   }
 
-  /* 会員表示の切り替え（表示確認用） */
-  .seg {
-    display: inline-flex;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .seg button {
-    padding: 3px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: inherit;
-    background: var(--panel);
-    color: var(--ink-3);
-    border: 0;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .seg button + button { border-left: 1px solid var(--line); }
-  .seg button.is-active { background: var(--navy); color: #fff; }
 </style>
 </head>
 <body>
@@ -112,10 +92,7 @@
       </span>
       <span class="badge badge--navy" id="dateLabel"></span>
       <span class="section-head__tail">
-        <span class="seg" id="memberToggle">
-          <button type="button" data-member="0">ログイン前</button>
-          <button type="button" data-member="1">ログイン後</button>
-        </span>
+        <span id="memberNav"></span>
         <a class="btn btn--sm btn--navy" id="channelLink" href="channel.html">飛びつきチャンネルで見る</a>
       </span>
     </div>
@@ -127,6 +104,9 @@
   <div class="notice" id="lockBanner" hidden style="margin-bottom:14px;">
     <b>🔒 脚評価・評価コメントは会員限定です</b><br>
     出走表・成績データは無料でご覧いただけます。独自の脚評価と評価コメントは会員登録後に表示されます。
+    <div style="margin-top:8px;">
+      <a class="btn btn--sm btn--primary" id="loginBtn" href="login.html">ログインして表示する</a>
+    </div>
   </div>
   <div id="loadState" class="state">読み込み中…</div>
   <div id="content" hidden></div>
@@ -152,30 +132,32 @@
     loadState:   document.getElementById('loadState'),
     content:     document.getElementById('content'),
     channelLink:  document.getElementById('channelLink'),
-    lockBanner:   document.getElementById('lockBanner'),
-    memberToggle: document.getElementById('memberToggle')
+    lockBanner: document.getElementById('lockBanner'),
+    loginBtn:   document.getElementById('loginBtn'),
+    memberNav:  document.getElementById('memberNav')
   };
 
   const currentDay = () => state.days[state.dayIndex];
 
   /* ================================
-     会員判定（暫定）
+     会員判定（仮実装）
 
-     注意: これは表示確認用の暫定実装であり、認証ではない。
-     静的サイトである以上クライアント側の判定は誰でも書き換えられる。
-     本番の出し分けはPhase 2でサーバー側に実装し、
-     非会員には評価データ自体を配信しない方式に置き換える。
+     判定そのものは keirin-ui.js の KUI.isMember() に寄せている。
+     これは認証ではなく、本番の出し分けは Phase 2 でサーバー側に
+     実装し、非会員には評価データ自体を配信しない方式へ置き換える。
      ================================ */
-  const MEMBER_KEY = 'asilog:member';
-  const params0 = new URLSearchParams(location.search);
-  let isMember = params0.get('preview') === 'member'
-    || localStorage.getItem(MEMBER_KEY) === '1';
+  let isMember = KUI.isMember();
 
   function applyMemberState() {
+    isMember = KUI.isMember();
     el.lockBanner.hidden = isMember;
-    el.memberToggle.querySelectorAll('button').forEach(btn => {
-      btn.classList.toggle('is-active', (btn.dataset.member === '1') === isMember);
-    });
+    el.loginBtn.href = KUI.loginUrl('race.html');
+
+    el.memberNav.innerHTML = isMember
+      ? `<span class="badge badge--navy">ログイン中</span>
+         <a class="btn btn--sm" href="#" id="logoutBtn">ログアウト</a>`
+      : `<a class="btn btn--sm" href="${KUI.loginUrl('race.html')}">ログイン</a>`;
+
     if (state.days.length) render();
   }
 
@@ -349,11 +331,10 @@
   /* ================================
      イベント
      ================================ */
-  el.memberToggle.addEventListener('click', e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    isMember = btn.dataset.member === '1';
-    localStorage.setItem(MEMBER_KEY, isMember ? '1' : '0');
+  el.memberNav.addEventListener('click', e => {
+    if (!e.target.closest('#logoutBtn')) return;
+    e.preventDefault();
+    KUI.setMember(false);
     applyMemberState();
   });
 

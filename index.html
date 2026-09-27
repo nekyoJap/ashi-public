@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ASILOG KEIRIN | 競輪レース情報</title>
 <meta name="description" content="競輪の出走表・レース結果を掲載しています。" />
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927b" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927c" />
 <style>
   /* ---------- 開催カード一覧 ---------- */
   .meets-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
@@ -95,7 +95,7 @@
   <nav class="home-links">
     <a class="btn" href="channel.html">📺 飛びつきチャンネル</a>
     <a class="btn" href="race.html">📋 出走表</a>
-    <a class="btn" href="result.html">🏁 レース結果</a>
+    <a class="btn" id="resultLink" href="result.html" hidden>🏁 レース結果</a>
   </nav>
 
   <p class="small" style="margin-top:24px;"><a href="company/">運営会社</a></p>
@@ -103,7 +103,7 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927b"></script>
+<script src="assets/keirin-ui.js?v=20260927c"></script>
 <script>
 (function () {
   'use strict';
@@ -111,7 +111,7 @@
   const loadState = document.getElementById('loadState');
 
   /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合の案内 */
-  if (!window.KUI || typeof KUI.nextRaceNum !== 'function') {
+  if (!window.KUI || typeof KUI.canSeeResults !== 'function') {
     loadState.className = 'state state--error';
     loadState.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
     return;
@@ -119,6 +119,7 @@
 
   KUI.mountChrome('');
   const esc = KUI.esc;
+  document.getElementById('resultLink').hidden = !KUI.canSeeResults();
 
   const params = new URLSearchParams(location.search);
   const dateParam = params.get('date');
@@ -140,8 +141,9 @@
       : `<div class="meet-card__race">${next}R</div>
          <div class="meet-card__status">次のレース</div>
          <div class="meet-card__sub">全${meet.races.length}R</div>`;
+    const resultHref = KUI.canSeeResults() ? `result.html?${q}` : KUI.loginUrl(`result.html?${q}`);
     const button = next === null
-      ? `<a class="pill-btn pill-btn--ghost" href="result.html?${q}">結果</a>`
+      ? `<a class="pill-btn pill-btn--ghost" href="${esc(resultHref)}">結果</a>`
       : `<a class="pill-btn" href="race.html?${q}&race=${next}">脚評価を見る</a>`;
 
     return `

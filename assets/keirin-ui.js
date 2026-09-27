@@ -195,17 +195,57 @@
     el.style.height = el.scrollHeight + 'px';
   }
 
+  /* ---------- ログイン（仮） ----------
+     注意: 表示の出し分けを確かめるための仮実装で、認証ではない。
+     ログイン状態は端末の localStorage に置くだけなので、誰でも書き換えられる。
+     本番は asilog-project でサーバー側の認証（L-12）に置き換える。
+
+     RESULT_MEMBERS_ONLY を false にすると、レース結果をログイン前でも見せる */
+  const RESULT_MEMBERS_ONLY = true;
+  const AUTH_KEY = 'asilog:member';   // race.html の会員限定表示と共通
+  const USER_KEY = 'asilog:user';
+
+  function storageGet(key) {
+    try { return localStorage.getItem(key); } catch (e) { return null; }
+  }
+  function storageSet(key, value) {
+    try {
+      if (value === null) localStorage.removeItem(key);
+      else localStorage.setItem(key, value);
+    } catch (e) { /* プライベートモード等で保存できないときはログインしない扱い */ }
+  }
+
+  function isLoggedIn() { return storageGet(AUTH_KEY) === '1'; }
+  function loginUser() { return storageGet(USER_KEY) || ''; }
+  function login(user) { storageSet(AUTH_KEY, '1'); storageSet(USER_KEY, user || ''); }
+  function logout() { storageSet(AUTH_KEY, '0'); storageSet(USER_KEY, null); }
+  function canSeeResults() { return !RESULT_MEMBERS_ONLY || isLoggedIn(); }
+
+  /* ログイン後の戻り先。同じサイトのページ（xxx.html と検索条件）だけ許す */
+  function safeNext(next) {
+    return /^[a-z][a-z0-9-]*\.html(\?[^#]*)?$/.test(String(next || '')) ? next : 'index.html';
+  }
+  function loginUrl(next) {
+    const here = location.pathname.split('/').pop() || 'index.html';
+    return `login.html?next=${encodeURIComponent(next || here + location.search)}`;
+  }
+
   /* ---------- 共通ヘッダー ---------- */
   const NAV = [
-    { href: 'channel.html', label: '飛びつきチャンネル' },
-    { href: 'race.html', label: 'レース情報' },
-    { href: 'result.html', label: 'レース結果' }
+    { href: 'channel.html', label: '飛びつきチャンネル', short: 'チャンネル' },
+    { href: 'race.html', label: 'レース情報', short: '出走表' },
+    { href: 'result.html', label: 'レース結果', short: '結果', membersOnly: RESULT_MEMBERS_ONLY }
   ];
 
   function renderHeader(currentHref) {
-    const links = NAV.map(n =>
-      `<a href="${n.href}"${n.href === currentHref ? ' aria-current="page"' : ''}>${n.label}</a>`
+    const loggedIn = isLoggedIn();
+    const links = NAV.filter(n => !n.membersOnly || loggedIn).map(n =>
+      `<a href="${n.href}"${n.href === currentHref ? ' aria-current="page"' : ''}>`
+      + `<span class="gnav__long">${n.label}</span><span class="gnav__short">${n.short}</span></a>`
     ).join('');
+    const auth = loggedIn
+      ? `<button class="auth-btn" type="button" data-logout>ログアウト</button>`
+      : (currentHref === 'login.html' ? '' : `<a class="auth-btn auth-btn--login" href="${esc(loginUrl())}">ログイン</a>`);
 
     return `
       <header class="site-header">
@@ -218,6 +258,7 @@
             </span>
           </a>
           <nav class="gnav">${links}</nav>
+          ${auth}
         </div>
       </header>`;
   }
@@ -241,6 +282,8 @@
   function mountChrome(currentHref) {
     const head = document.getElementById('siteHeader');
     if (head) head.outerHTML = renderHeader(currentHref);
+    const out = document.querySelector('.site-header [data-logout]');
+    if (out) out.addEventListener('click', () => { logout(); location.reload(); });
     const foot = document.getElementById('siteFooter');
     if (foot) foot.outerHTML = renderFooter();
   }
@@ -252,6 +295,7 @@
     linesHtml, dayLabel,
     fetchRaceInfo, fetchRaceResult, finishedByPlace, nextRaceNum,
     evalKey, loadEvalRaw, autoResize,
+    RESULT_MEMBERS_ONLY, isLoggedIn, loginUser, login, logout, canSeeResults, safeNext, loginUrl,
     renderHeader, renderFooter, mountChrome
   };
 })(window);

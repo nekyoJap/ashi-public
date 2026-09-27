@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース情報 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927b" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927c" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -68,25 +68,6 @@
   }
 
   /* 会員表示の切り替え（表示確認用） */
-  .seg {
-    display: inline-flex;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-sm);
-    overflow: hidden;
-  }
-  .seg button {
-    padding: 3px 10px;
-    font-size: 12px;
-    font-weight: 700;
-    font-family: inherit;
-    background: var(--panel);
-    color: var(--ink-3);
-    border: 0;
-    cursor: pointer;
-    white-space: nowrap;
-  }
-  .seg button + button { border-left: 1px solid var(--line); }
-  .seg button.is-active { background: var(--navy); color: #fff; }
 </style>
 </head>
 <body>
@@ -113,10 +94,6 @@
       </span>
       <span class="badge badge--navy" id="dateLabel"></span>
       <span class="section-head__tail">
-        <span class="seg" id="memberToggle">
-          <button type="button" data-member="0">ログイン前</button>
-          <button type="button" data-member="1">ログイン後</button>
-        </span>
         <a class="btn btn--sm btn--navy" id="channelLink" href="channel.html">飛びつきチャンネルで見る</a>
       </span>
     </div>
@@ -128,6 +105,7 @@
   <div class="notice" id="lockBanner" hidden style="margin-bottom:14px;">
     <b>🔒 脚評価・評価コメントは会員限定です</b><br>
     出走表・成績データは無料でご覧いただけます。独自の脚評価と評価コメントは会員登録後に表示されます。
+    <a class="btn btn--sm btn--navy" id="lockLogin" href="login.html" style="margin-top:6px;">ログインする</a>
   </div>
   <div id="loadState" class="state">読み込み中…</div>
   <div id="content" hidden></div>
@@ -135,14 +113,14 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927b"></script>
+<script src="assets/keirin-ui.js?v=20260927c"></script>
 <script>
 (function () {
   'use strict';
 
   /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合に、
      「読み込み中…」のまま止まらないよう案内を出す */
-  if (!window.KUI || typeof KUI.nextRaceNum !== 'function') {
+  if (!window.KUI || typeof KUI.isLoggedIn !== 'function') {
     const s = document.getElementById('loadState');
     s.className = 'state state--error';
     s.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
@@ -164,7 +142,7 @@
     content:     document.getElementById('content'),
     channelLink:  document.getElementById('channelLink'),
     lockBanner:   document.getElementById('lockBanner'),
-    memberToggle: document.getElementById('memberToggle')
+    lockLogin:    document.getElementById('lockLogin')
   };
 
   const currentDay = () => state.days[state.dayIndex];
@@ -177,16 +155,12 @@
      本番の出し分けはPhase 2でサーバー側に実装し、
      非会員には評価データ自体を配信しない方式に置き換える。
      ================================ */
-  const MEMBER_KEY = 'asilog:member';
   const params0 = new URLSearchParams(location.search);
-  let isMember = params0.get('preview') === 'member'
-    || localStorage.getItem(MEMBER_KEY) === '1';
+  const isMember = params0.get('preview') === 'member' || KUI.isLoggedIn();
 
   function applyMemberState() {
     el.lockBanner.hidden = isMember;
-    el.memberToggle.querySelectorAll('button').forEach(btn => {
-      btn.classList.toggle('is-active', (btn.dataset.member === '1') === isMember);
-    });
+    el.lockLogin.href = KUI.loginUrl();
     if (state.days.length) render();
   }
 
@@ -417,14 +391,6 @@
   /* ================================
      イベント
      ================================ */
-  el.memberToggle.addEventListener('click', e => {
-    const btn = e.target.closest('button');
-    if (!btn) return;
-    isMember = btn.dataset.member === '1';
-    localStorage.setItem(MEMBER_KEY, isMember ? '1' : '0');
-    applyMemberState();
-  });
-
   el.dateInput.addEventListener('change', e => load(e.target.value));
   el.prevDay.addEventListener('click', () => load(KUI.shiftDate(state.date, -1)));
   el.nextDay.addEventListener('click', () => load(KUI.shiftDate(state.date, 1)));

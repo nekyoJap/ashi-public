@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ログイン | 飛びつきチャンネル</title>
+<meta name="robots" content="noindex" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927c" />
+<style>
+  .login-card { max-width: 400px; margin: 32px auto; padding: 24px 20px; }
+  .login-card__title { margin: 0 0 4px; font-size: 20px; font-weight: 800; text-align: center; }
+  .login-card__lead { margin: 0 0 18px; text-align: center; }
+  .login-field { display: block; margin-bottom: 14px; font-size: 13px; font-weight: 700; color: var(--ink-2); }
+  .login-field .input { display: block; width: 100%; margin-top: 4px; padding: 10px 12px; font-size: 16px; }
+  .login-submit {
+    display: block;
+    width: 100%;
+    margin-top: 6px;
+    padding: 12px;
+    border: 0;
+    border-radius: 999px;
+    background: var(--navy);
+    color: #fff;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+  .login-submit:hover { background: var(--navy-3); }
+  .login-error { margin: 0 0 12px; color: var(--red-dark); font-size: 13px; font-weight: 700; }
+</style>
+</head>
+<body>
+
+<div id="siteHeader"></div>
+
+<main class="wrap">
+  <div class="card login-card">
+    <h1 class="login-card__title">ログイン</h1>
+    <p class="login-card__lead small muted">会員の方はログインすると、脚評価とレース結果を見られます。</p>
+
+    <div class="notice" style="margin-bottom:16px;">
+      <b>仮のログイン画面です。</b>メールアドレスとパスワードに何か入力すればログインできます。
+      パスワードは確認も保存もしません。
+    </div>
+
+    <form id="loginForm" novalidate>
+      <p class="login-error" id="loginError" hidden></p>
+      <label class="login-field">
+        メールアドレス
+        <input class="input" id="email" type="email" autocomplete="username" inputmode="email" />
+      </label>
+      <label class="login-field">
+        パスワード
+        <input class="input" id="password" type="password" autocomplete="current-password" />
+      </label>
+      <button class="login-submit" type="submit">ログイン</button>
+    </form>
+
+    <div id="loggedIn" hidden style="text-align:center;">
+      <p><b id="userName"></b> でログイン中です。</p>
+      <a class="login-submit" id="continueLink" href="index.html" style="text-decoration:none;">続ける</a>
+    </div>
+  </div>
+</main>
+
+<div id="siteFooter"></div>
+
+<script src="assets/keirin-ui.js?v=20260927c"></script>
+<script>
+(function () {
+  'use strict';
+
+  const errorEl = document.getElementById('loginError');
+  if (!window.KUI || typeof KUI.login !== 'function') {
+    errorEl.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
+    errorEl.hidden = false;
+    return;
+  }
+
+  KUI.mountChrome('login.html');
+  const next = KUI.safeNext(new URLSearchParams(location.search).get('next'));
+
+  if (KUI.isLoggedIn()) {
+    document.getElementById('loginForm').hidden = true;
+    document.getElementById('loggedIn').hidden = false;
+    document.getElementById('userName').textContent = KUI.loginUser() || '会員';
+    document.getElementById('continueLink').href = next;
+    return;
+  }
+
+  document.getElementById('loginForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const email = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    if (!email || !password) {
+      errorEl.textContent = 'メールアドレスとパスワードを入力してください';
+      errorEl.hidden = false;
+      return;
+    }
+    KUI.login(email);
+    location.href = next;
+  });
+})();
+</script>
+</body>
+</html>

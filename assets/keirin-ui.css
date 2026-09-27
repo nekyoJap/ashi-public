@@ -123,6 +123,9 @@
 
 * { box-sizing: border-box; }
 
+/* display を指定したクラス（.btn など）でも hidden 属性で確実に隠す */
+[hidden] { display: none !important; }
+
 html { -webkit-text-size-adjust: 100%; }
 
 body {
@@ -216,6 +219,36 @@ a:hover { text-decoration: underline; }
 }
 .gnav a:hover { background: var(--header-hover); color: var(--header-ink); text-decoration: none; }
 .gnav a[aria-current="page"] { background: var(--red); color: #fff; }
+
+/* スマホ幅ではナビを短い表記にして、ログインボタンと並んでも切れないようにする */
+.gnav__short { display: none; }
+@media (max-width: 600px) {
+  .gnav__long { display: none; }
+  .gnav__short { display: inline; }
+  .site-header .gnav a { padding: 6px 7px; }
+  .auth-btn { padding: 5px 9px; }
+}
+@media (max-width: 400px) {
+  .brand__name { display: none; }
+}
+
+/* ログイン／ログアウト（ナビが横スクロールしても常に見えるよう gnav の外に置く） */
+.auth-btn {
+  flex: none;
+  padding: 5px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--header-link) 40%, transparent);
+  background: transparent;
+  color: var(--header-link);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.auth-btn:hover { background: var(--header-hover); text-decoration: none; }
+.auth-btn--login { background: var(--navy); border-color: var(--navy); color: #fff; }
+.auth-btn--login:hover { background: var(--navy-3); }
 
 /* ---------------------------------------------------------
    ページ見出し
@@ -689,6 +722,7 @@ a:hover { text-decoration: underline; }
   .page-title { font-size: 17px; }
   .brand__sub { display: none; }
   .gnav a { padding: 6px 9px; font-size: 12px; }
+  .site-header__inner { gap: 8px; }
   .tbl { font-size: 12px; }
   .tbl th, .tbl td { padding: 4px 5px; }
   .toolbar { padding: 8px 10px; gap: 8px; }

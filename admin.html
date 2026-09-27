@@ -3,7 +3,8 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>レース結果 | 飛びつきチャンネル</title>
+<title>レース結果（管理者用） | 飛びつきチャンネル</title>
+<meta name="robots" content="noindex" />
 <link rel="stylesheet" href="assets/keirin-ui.css?v=20260927d" />
 <style>
   .sticky-bar {
@@ -75,8 +76,14 @@
   .rank--2 { background: #c4ccd6; color: #2b3542; }
   .rank--3 { background: #d9a273; color: #4a2f13; }
 
-  /* 脚評価（管理者が入れた値を表示するだけ） */
-  .eval-mark { font-family: var(--font-num); font-size: 14px; font-weight: 800; color: var(--navy); }
+  .video-wrap { padding: 12px 12px 0; }
+  .video-wrap video {
+    width: 100%;
+    max-width: 620px;
+    border-radius: var(--radius-sm);
+    background: #000;
+    display: block;
+  }
   .cmt {
     display: inline-block;
     max-width: 320px;
@@ -94,7 +101,7 @@
 
 <div class="page-head">
   <div class="page-head__inner">
-    <h1 class="page-title">レース結果</h1>
+    <h1 class="page-title">レース結果（管理者用）</h1>
     <span class="page-en">RACE RESULT</span>
   </div>
 </div>
@@ -117,10 +124,11 @@
 </div>
 
 <main class="wrap wrap--wide" style="padding-top:14px;">
-  <div class="notice" id="membersOnly" hidden style="margin:24px 0;text-align:center;">
-    <b>🔒 レース結果は会員限定です</b><br>
-    ログインすると、着順・上がりタイム・決まり手と脚評価を見られます。<br>
-    <a class="btn btn--navy" id="membersLogin" href="login.html" style="margin-top:10px;">ログインする</a>
+  <div class="notice" id="adminOnly" hidden style="margin:24px 0;text-align:center;">
+    <b>🔒 このページは管理者用です</b><br>
+    <span id="adminOnlyText">管理者としてログインしてください。</span><br>
+    <a class="btn btn--navy" id="adminLogin" href="login.html" style="margin-top:10px;">ログインする</a>
+    <a class="btn" id="memberResult" href="result.html" style="margin-top:10px;" hidden>会員向けの結果を見る</a>
   </div>
   <div id="loadState" class="state">読み込み中…</div>
 
@@ -140,7 +148,7 @@
 
   /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合に、
      「読み込み中…」のまま止まらないよう案内を出す */
-  if (!window.KUI || typeof KUI.loadEvaluation !== 'function') {
+  if (!window.KUI || typeof KUI.isAdmin !== 'function') {
     const s = document.getElementById('loadState');
     s.className = 'state state--error';
     s.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
@@ -148,6 +156,8 @@
   }
 
   const esc = KUI.esc;
+
+  const EVAL_OPTIONS = ['S', 'A+', 'A', 'A-', 'B+', 'B', 'B-', 'C', 'D'];
 
   const state = {
     date: '',
@@ -182,6 +192,29 @@
   };
 
   /* ================================
+     評価の保存・取得（localStorage）
+     ================================ */
+  function saveEvaluation(day, racerName, value, comment) {
+    const key = KUI.evalKey(day.race_id, racerName);
+    const idx = day.race_day - 1;
+
+    let data = { value: '', comments: [] };
+    const raw = localStorage.getItem(key);
+    if (raw) {
+      try {
+        data = JSON.parse(raw);
+        data.comments = data.comments || [];
+      } catch (e) { /* 壊れていたら作り直す */ }
+    }
+
+    data.value = value;
+    data.comments[idx] = comment;
+    localStorage.setItem(key, JSON.stringify(data));
+  }
+
+  const loadEvaluation = KUI.loadEvaluation;
+
+  /* ================================
      開催チップ
      ================================ */
   function renderDayChips() {
@@ -208,8 +241,11 @@
       <span class="section-head__tail">
         ${hasFinal ? '<span class="badge badge--red">最終日（決勝）</span>'
                    : `<a class="btn btn--sm" href="${nextUrl}">次の日の出走表 ›</a>`}
-        ${KUI.isAdmin() ? `<a class="btn btn--sm btn--navy" href="admin.html?date=${state.date}&place=${encodeURIComponent(day.place)}">管理画面 ›</a>` : ''}
+        <a class="btn btn--sm" href="result.html?date=${state.date}&place=${encodeURIComponent(day.place)}">会員向けの表示 ›</a>
+        <button class="btn btn--sm btn--navy" id="copyAllBtn" type="button">全レースをコピー</button>
       </span>`;
+
+    document.getElementById('copyAllBtn').onclick = onCopyAll;
   }
 
   /* ================================
@@ -233,19 +269,25 @@
     return `<span class="rank${cls}">${esc(rank)}</span>`;
   }
 
-  /* 脚評価と評価コメント。管理者用ページ（admin.html）で入れた値を表示するだけ。
-     脚評価はスマホでも横スクロールせずに見えるよう、選手名のすぐ右に置く */
-  function evalMarkCell(ev) {
-    return `<td>${ev.value ? `<span class="eval-mark">${esc(ev.value)}</span>` : '<span class="muted">-</span>'}</td>`;
-  }
+  function evalCell(day, racerName) {
+    const ev = loadEvaluation(day, racerName);
+    const options = ['<option value="">-</option>'].concat(
+      EVAL_OPTIONS.map(v =>
+        `<option value="${v}"${ev.value === v ? ' selected' : ''}>${v}</option>`)
+    ).join('');
 
-  function evalCommentCell(ev) {
-    return `<td class="txt txt--note">
-        <div class="clamp2" title="${esc(ev.comment)}">${esc(ev.comment) || '<span class="muted">-</span>'}</div>
+    return `
+      <td>
+        <select class="select eval-select" data-racer="${esc(racerName)}">${options}</select>
+      </td>
+      <td class="txt txt--note">
+        <textarea class="textarea eval-comment" rows="1"
+          data-racer="${esc(racerName)}">${esc(ev.comment)}</textarea>
       </td>`;
   }
 
   function raceCard(day, race, options) {
+    const showVideo = options && options.video;
     const showRaceComment = options && options.raceComment;
 
     return `
@@ -258,27 +300,31 @@
           </span>` : ''}
         </div>
 
-        <div class="table-scroll" style="border:0;border-radius:0 0 var(--radius) var(--radius);">
+        ${showVideo && race.video_url ? `
+          <div class="video-wrap">
+            <video src="${esc(race.video_url)}" controls preload="none"></video>
+          </div>` : ''}
+
+        <div class="table-scroll" style="border:0;border-radius:0 0 var(--radius) var(--radius);margin-top:12px;">
           <table class="tbl">
             <thead>
               <tr>
                 <th class="frz rcol-rank">着</th>
                 <th class="frz rcol-car">車</th>
                 <th class="frz frz--edge rcol-name">選手</th>
-                <th>脚評価</th>
                 <th>級班</th>
                 <th>上り</th>
                 <th>決</th>
                 <th>SB</th>
                 <th>着差</th>
                 ${showRaceComment ? '<th class="txt--note">レース後コメント</th>' : ''}
-                <th class="txt--note">評価コメント</th>
+                <th>評価</th>
+                <th class="txt--note">コメント</th>
               </tr>
             </thead>
             <tbody>
               ${(race.racers || []).map(r => {
                 const comment = r['レース後コメント'] || '';
-                const ev = KUI.loadEvaluation(day, r['選手名']);
                 return `
                 <tr>
                   <td class="frz rcol-rank">${rankBadge(r['着'])}</td>
@@ -287,7 +333,6 @@
                     <div class="racer-name">${esc(r['選手名'])}</div>
                     <div class="racer-meta">${esc(r['年齢'])} ${esc(r['期別'])} ${esc(r['府県'])}</div>
                   </td>
-                  ${evalMarkCell(ev)}
                   <td>${esc(r['級班'])}</td>
                   <td class="num">${esc(r['上り'])}</td>
                   <td>${KUI.kimariteBadge(r['決'])}</td>
@@ -296,13 +341,34 @@
                   ${showRaceComment ? `<td class="txt txt--note">
                     <div class="clamp2" title="${esc(comment)}">${esc(comment) || '<span class="muted">-</span>'}</div>
                   </td>` : ''}
-                  ${evalCommentCell(ev)}
+                  ${evalCell(day, r['選手名'])}
                 </tr>`;
               }).join('')}
             </tbody>
           </table>
         </div>
       </div>`;
+  }
+
+  function bindEvalInputs() {
+    const day = currentDay();
+
+    el.raceDetail.querySelectorAll('.eval-select, .eval-comment').forEach(node => {
+      node.addEventListener('change', () => {
+        const row = node.closest('tr');
+        saveEvaluation(
+          day,
+          node.dataset.racer,
+          row.querySelector('.eval-select').value,
+          row.querySelector('.eval-comment').value
+        );
+      });
+    });
+
+    el.raceDetail.querySelectorAll('.eval-comment').forEach(node => {
+      KUI.autoResize(node);
+      node.addEventListener('input', () => KUI.autoResize(node));
+    });
   }
 
   function renderRaceDetail() {
@@ -312,21 +378,62 @@
     if (state.view.mode === 'all') {
       // 最新のレースを上にする
       el.raceDetail.innerHTML = day.races.slice().reverse()
-        .map(race => raceCard(day, race, { raceComment: false }))
+        .map(race => raceCard(day, race, { video: false, raceComment: false }))
         .join('');
     } else {
       const race = day.races[state.view.index];
       el.raceDetail.innerHTML = race
-        ? raceCard(day, race, { raceComment: true })
+        ? raceCard(day, race, { video: true, raceComment: true })
         : '<div class="state">レースがありません</div>';
     }
 
+    bindEvalInputs();
   }
 
   function render() {
     renderDayChips();
     renderDaySummary();
     renderRaceDetail();
+  }
+
+  /* ================================
+     TSVコピー
+     ================================ */
+  function sanitizeForTSV(text) {
+    if (!text) return '';
+    return String(text).replace(/\r?\n/g, ' ').replace(/\t/g, ' ');
+  }
+
+  function buildAllRacesTSV(day) {
+    const header = ['開催', 'グレード', '日目', 'レース', '着', '車', '選手',
+      '級班', '上り', '決', 'SB', '着差', '評価', 'コメント'];
+    const lines = [header.join('\t')];
+
+    day.races.forEach((race, raceIdx) => {
+      (race.racers || []).forEach(r => {
+        const ev = loadEvaluation(day, r['選手名']);
+        lines.push([
+          day.place, day.grade, day.race_day, race.race_num,
+          r['着'], r['車'], r['選手名'], r['級班'], r['上り'],
+          r['決'], r['SB'], r['着差'], ev.value, sanitizeForTSV(ev.comment)
+        ].join('\t'));
+      });
+      if (raceIdx < day.races.length - 1) lines.push('');
+    });
+
+    return lines.join('\n');
+  }
+
+  async function onCopyAll() {
+    const btn = document.getElementById('copyAllBtn');
+    const tsv = buildAllRacesTSV(currentDay());
+    try {
+      await navigator.clipboard.writeText(tsv);
+      btn.textContent = 'コピーしました';
+    } catch (e) {
+      btn.textContent = 'コピーできませんでした';
+    }
+    setTimeout(() => (btn.textContent = '全レースをコピー'), 1500);
   }
 
   /* ================================
@@ -393,14 +500,23 @@
      初期化（日本時間19時前は前日の結果を表示）
      ================================ */
 
-  KUI.mountChrome('result.html');
+  KUI.mountChrome('admin.html');
 
-  /* ログイン前（レース結果を会員限定にしている間）は、データを取りに行かず案内だけ出す */
-  if (!KUI.canSeeResults()) {
+  /* 管理者以外は、データを取りに行かず案内だけ出す（仮の管理者ログイン。認証ではない） */
+  if (!KUI.isAdmin()) {
     document.querySelector('.sticky-bar').hidden = true;
     el.loadState.hidden = true;
-    document.getElementById('membersLogin').href = KUI.loginUrl();
-    document.getElementById('membersOnly').hidden = false;
+    const login = document.getElementById('adminLogin');
+    login.href = KUI.loginUrl();
+    if (KUI.isLoggedIn()) {
+      document.getElementById('adminOnlyText').textContent =
+        '会員の方は、レース結果と脚評価を会員向けの結果ページで見られます。';
+      login.hidden = true;
+      const member = document.getElementById('memberResult');
+      member.href = 'result.html' + location.search;
+      member.hidden = false;
+    }
+    document.getElementById('adminOnly').hidden = false;
     return;
   }
 

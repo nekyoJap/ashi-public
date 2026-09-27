@@ -222,14 +222,17 @@ a:hover { text-decoration: underline; }
 
 /* スマホ幅ではナビを短い表記にして、ログインボタンと並んでも切れないようにする */
 .gnav__short { display: none; }
-@media (max-width: 600px) {
+@media (max-width: 760px) {
   .gnav__long { display: none; }
   .gnav__short { display: inline; }
   .site-header .gnav a { padding: 6px 7px; }
   .auth-btn { padding: 5px 9px; }
 }
-@media (max-width: 400px) {
+@media (max-width: 440px) {
   .brand__name { display: none; }
+  .site-header__inner { padding: 0 8px; gap: 6px; }
+  .site-header .gnav a { padding: 6px 5px; }
+  .auth-btn { padding: 4px 8px; font-size: 11px; }
 }
 
 /* ログイン／ログアウト（ナビが横スクロールしても常に見えるよう gnav の外に置く） */

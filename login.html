@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ログイン | 飛びつきチャンネル</title>
 <meta name="robots" content="noindex" />
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927c" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927d" />
 <style>
   .login-card { max-width: 400px; margin: 32px auto; padding: 24px 20px; }
   .login-card__title { margin: 0 0 4px; font-size: 20px; font-weight: 800; text-align: center; }
@@ -27,6 +27,7 @@
     cursor: pointer;
   }
   .login-submit:hover { background: var(--navy-3); }
+  .login-check { display: flex; align-items: center; gap: 6px; margin: 0 0 14px; font-size: 13px; color: var(--ink-2); }
   .login-error { margin: 0 0 12px; color: var(--red-dark); font-size: 13px; font-weight: 700; }
 </style>
 </head>
@@ -54,11 +55,14 @@
         パスワード
         <input class="input" id="password" type="password" autocomplete="current-password" />
       </label>
+      <label class="login-check">
+        <input type="checkbox" id="asAdmin" /> 管理者としてログイン（仮）
+      </label>
       <button class="login-submit" type="submit">ログイン</button>
     </form>
 
     <div id="loggedIn" hidden style="text-align:center;">
-      <p><b id="userName"></b> でログイン中です。</p>
+      <p><b id="userName"></b> で<span id="roleLabel"></span>ログイン中です。</p>
       <a class="login-submit" id="continueLink" href="index.html" style="text-decoration:none;">続ける</a>
     </div>
   </div>
@@ -66,7 +70,7 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927c"></script>
+<script src="assets/keirin-ui.js?v=20260927d"></script>
 <script>
 (function () {
   'use strict';
@@ -85,9 +89,13 @@
     document.getElementById('loginForm').hidden = true;
     document.getElementById('loggedIn').hidden = false;
     document.getElementById('userName').textContent = KUI.loginUser() || '会員';
+    document.getElementById('roleLabel').textContent = KUI.isAdmin() ? '管理者として' : '';
     document.getElementById('continueLink').href = next;
     return;
   }
+
+  // 管理者用ページから来たときは、管理者ログインを選んだ状態にしておく
+  if (/^admin\.html/.test(next)) document.getElementById('asAdmin').checked = true;
 
   document.getElementById('loginForm').addEventListener('submit', e => {
     e.preventDefault();
@@ -98,7 +106,7 @@
       errorEl.hidden = false;
       return;
     }
-    KUI.login(email);
+    KUI.login(email, { admin: document.getElementById('asAdmin').checked });
     location.href = next;
   });
 })();

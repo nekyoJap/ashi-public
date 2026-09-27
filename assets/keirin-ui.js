@@ -189,6 +189,16 @@
     }
   }
 
+  /* その開催日（day）の評価と評価コメント。評価は開催を通して1つ、コメントは日目ごと */
+  function loadEvaluation(day, racerName) {
+    const data = loadEvalRaw(day.race_id, racerName);
+    if (!data) return { value: '', comment: '' };
+    return {
+      value: data.value || '',
+      comment: data.comments[day.race_day - 1] || ''
+    };
+  }
+
   /* ---------- textarea 自動リサイズ ---------- */
   function autoResize(el) {
     el.style.height = 'auto';
@@ -204,6 +214,7 @@
   const RESULT_MEMBERS_ONLY = true;
   const AUTH_KEY = 'asilog:member';   // race.html の会員限定表示と共通
   const USER_KEY = 'asilog:user';
+  const ROLE_KEY = 'asilog:role';     // 'admin' なら管理者
 
   function storageGet(key) {
     try { return localStorage.getItem(key); } catch (e) { return null; }
@@ -217,8 +228,13 @@
 
   function isLoggedIn() { return storageGet(AUTH_KEY) === '1'; }
   function loginUser() { return storageGet(USER_KEY) || ''; }
-  function login(user) { storageSet(AUTH_KEY, '1'); storageSet(USER_KEY, user || ''); }
-  function logout() { storageSet(AUTH_KEY, '0'); storageSet(USER_KEY, null); }
+  function isAdmin() { return isLoggedIn() && storageGet(ROLE_KEY) === 'admin'; }
+  function login(user, opts) {
+    storageSet(AUTH_KEY, '1');
+    storageSet(USER_KEY, user || '');
+    storageSet(ROLE_KEY, opts && opts.admin ? 'admin' : null);
+  }
+  function logout() { storageSet(AUTH_KEY, '0'); storageSet(USER_KEY, null); storageSet(ROLE_KEY, null); }
   function canSeeResults() { return !RESULT_MEMBERS_ONLY || isLoggedIn(); }
 
   /* ログイン後の戻り先。同じサイトのページ（xxx.html と検索条件）だけ許す */
@@ -234,12 +250,14 @@
   const NAV = [
     { href: 'channel.html', label: '飛びつきチャンネル', short: 'チャンネル' },
     { href: 'race.html', label: 'レース情報', short: '出走表' },
-    { href: 'result.html', label: 'レース結果', short: '結果', membersOnly: RESULT_MEMBERS_ONLY }
+    { href: 'result.html', label: 'レース結果', short: '結果', membersOnly: RESULT_MEMBERS_ONLY },
+    { href: 'admin.html', label: '結果管理', short: '管理', adminOnly: true }
   ];
 
   function renderHeader(currentHref) {
     const loggedIn = isLoggedIn();
-    const links = NAV.filter(n => !n.membersOnly || loggedIn).map(n =>
+    const admin = isAdmin();
+    const links = NAV.filter(n => (!n.membersOnly || loggedIn) && (!n.adminOnly || admin)).map(n =>
       `<a href="${n.href}"${n.href === currentHref ? ' aria-current="page"' : ''}>`
       + `<span class="gnav__long">${n.label}</span><span class="gnav__short">${n.short}</span></a>`
     ).join('');
@@ -294,8 +312,8 @@
     gradeKey, gradeBadge, bikeBadge, racerCarNo, racerBikeBadge, legBadge, kimariteBadge,
     linesHtml, dayLabel,
     fetchRaceInfo, fetchRaceResult, finishedByPlace, nextRaceNum,
-    evalKey, loadEvalRaw, autoResize,
-    RESULT_MEMBERS_ONLY, isLoggedIn, loginUser, login, logout, canSeeResults, safeNext, loginUrl,
+    evalKey, loadEvalRaw, loadEvaluation, autoResize,
+    RESULT_MEMBERS_ONLY, isLoggedIn, isAdmin, loginUser, login, logout, canSeeResults, safeNext, loginUrl,
     renderHeader, renderFooter, mountChrome
   };
 })(window);

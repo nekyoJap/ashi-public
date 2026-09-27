@@ -5,47 +5,97 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ASILOG KEIRIN | 競輪レース情報</title>
 <meta name="description" content="競輪の出走表・レース結果を掲載しています。" />
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927b" />
 <style>
-  .home-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
-  @media (min-width: 640px) { .home-grid { grid-template-columns: 1fr 1fr; } }
-  .home-card { display: block; padding: 18px; color: inherit; text-decoration: none; }
-  .home-card:hover { border-color: var(--navy-3); }
-  .home-card--wide { grid-column: 1 / -1; }
-  .home-card__icon { font-size: 24px; margin-bottom: 6px; }
-  .home-card__title { font-weight: 800; margin: 0 0 4px; font-size: 16px; }
+  /* ---------- 開催カード一覧 ---------- */
+  .meets-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 12px; }
+  .meets-head__title { margin: 0; font-size: 18px; font-weight: 800; }
+  .meets-head__nav { margin-left: auto; display: flex; gap: 6px; }
+
+  .meet-list { display: grid; gap: 12px; grid-template-columns: 1fr; }
+  @media (min-width: 760px) { .meet-list { grid-template-columns: 1fr 1fr; } }
+
+  .meet-card {
+    display: grid;
+    grid-template-columns: 7.5em 1fr auto;
+    align-items: center;
+    gap: 12px;
+    padding: 18px 16px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    box-shadow: var(--shadow);
+  }
+  .meet-card__venue { text-align: center; }
+  .meet-card__place { font-size: 22px; font-weight: 800; line-height: 1.3; white-space: nowrap; }
+  .meet-card__badges { display: flex; justify-content: center; gap: 4px; margin: 4px 0; }
+  .meet-card__badges .grade { font-size: 13px; padding: 2px 8px; border-radius: 6px; }
+  .meet-card__day { font-size: 13px; font-weight: 700; color: var(--ink-2); }
+  .meet-card__race { font-family: var(--font-num); font-size: 30px; font-weight: 800; line-height: 1.1; }
+  .meet-card__status { font-size: 13px; font-weight: 700; color: var(--green); }
+  .meet-card__status--done { font-size: 26px; font-weight: 800; color: var(--ink-3); line-height: 1.2; }
+  .meet-card__sub { font-size: 12px; color: var(--ink-3); }
+
+  .girls-badge {
+    display: inline-grid;
+    place-items: center;
+    padding: 0 6px;
+    border-radius: 6px;
+    background: #ffe0ec;
+    color: #e0457b;
+    font-size: 13px;
+    line-height: 1.6;
+  }
+
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 8.5em;
+    padding: 12px 18px;
+    border-radius: 999px;
+    border: 2px solid var(--navy);
+    background: var(--navy);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 800;
+    white-space: nowrap;
+  }
+  .pill-btn:hover { background: var(--navy-3); border-color: var(--navy-3); text-decoration: none; }
+  .pill-btn--ghost { background: transparent; border-color: var(--line); color: var(--ink-2); }
+  .pill-btn--ghost:hover { background: var(--panel-2); border-color: var(--scroll-thumb); }
+
+  @media (max-width: 420px) {
+    .meet-card { grid-template-columns: 6.2em 1fr auto; gap: 8px; padding: 16px 12px; }
+    .meet-card__place { font-size: 19px; }
+    .meet-card__race { font-size: 26px; }
+    .pill-btn { min-width: 0; padding: 11px 14px; font-size: 14px; }
+  }
+
+  /* ---------- その他の入口 ---------- */
+  .home-links { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 24px; }
 </style>
 </head>
 <body>
 
 <div id="siteHeader"></div>
 
-<div class="page-head">
-  <div class="page-head__inner">
-    <h1 class="page-title">ASILOG KEIRIN</h1>
-    <span class="page-en">KEIRIN RACE INFO</span>
-  </div>
-</div>
-
 <main class="wrap" style="padding-top:20px;padding-bottom:40px;">
-  <p class="muted" style="margin-top:0;">競輪の出走表・レース結果を掲載しています。</p>
+  <div class="meets-head">
+    <h1 class="meets-head__title"><span id="dateLabel"></span> の開催</h1>
+    <div class="meets-head__nav">
+      <a class="btn btn--sm" id="prevDay" href="#">‹ 前日</a>
+      <a class="btn btn--sm" id="nextDay" href="#">翌日 ›</a>
+    </div>
+  </div>
 
-  <nav class="home-grid">
-    <a class="card home-card home-card--wide" href="channel.html">
-      <div class="home-card__icon">📺</div>
-      <h2 class="home-card__title">飛びつきチャンネル</h2>
-      <p class="small muted" style="margin:0;">飛びつきが発生しそうなレースと買い目（模範目）を掲載しています。</p>
-    </a>
-    <a class="card home-card" href="race.html">
-      <div class="home-card__icon">📋</div>
-      <h2 class="home-card__title">レース情報（出走表）</h2>
-      <p class="small muted" style="margin:0;">本日開催のレース・出走選手を確認できます。</p>
-    </a>
-    <a class="card home-card" href="result.html">
-      <div class="home-card__icon">🏁</div>
-      <h2 class="home-card__title">レース結果</h2>
-      <p class="small muted" style="margin:0;">確定した着順・レース映像を確認できます。</p>
-    </a>
+  <div class="state" id="loadState">読み込み中…</div>
+  <div class="meet-list" id="meetList" hidden></div>
+
+  <nav class="home-links">
+    <a class="btn" href="channel.html">📺 飛びつきチャンネル</a>
+    <a class="btn" href="race.html">📋 出走表</a>
+    <a class="btn" href="result.html">🏁 レース結果</a>
   </nav>
 
   <p class="small" style="margin-top:24px;"><a href="company/">運営会社</a></p>
@@ -53,7 +103,91 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927"></script>
-<script>KUI.mountChrome('');</script>
+<script src="assets/keirin-ui.js?v=20260927b"></script>
+<script>
+(function () {
+  'use strict';
+
+  const loadState = document.getElementById('loadState');
+
+  /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合の案内 */
+  if (!window.KUI || typeof KUI.nextRaceNum !== 'function') {
+    loadState.className = 'state state--error';
+    loadState.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
+    return;
+  }
+
+  KUI.mountChrome('');
+  const esc = KUI.esc;
+
+  const params = new URLSearchParams(location.search);
+  const dateParam = params.get('date');
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(dateParam || '') ? dateParam : KUI.defaultRaceDate();
+
+  document.getElementById('dateLabel').textContent = KUI.labelDate(date);
+  document.getElementById('prevDay').href = `?date=${KUI.shiftDate(date, -1)}`;
+  document.getElementById('nextDay').href = `?date=${KUI.shiftDate(date, 1)}`;
+
+  /* ガールズケイリン（レース名が「L級」）を含む開催 */
+  function hasGirls(meet) {
+    return (meet.races || []).some(r => /^L級/.test(String(r.race_name || '')));
+  }
+
+  function meetCard(meet, next) {
+    const q = `date=${date}&place=${encodeURIComponent(meet.place)}`;
+    const middle = next === null
+      ? `<div class="meet-card__status--done">終了</div>`
+      : `<div class="meet-card__race">${next}R</div>
+         <div class="meet-card__status">次のレース</div>
+         <div class="meet-card__sub">全${meet.races.length}R</div>`;
+    const button = next === null
+      ? `<a class="pill-btn pill-btn--ghost" href="result.html?${q}">結果</a>`
+      : `<a class="pill-btn" href="race.html?${q}&race=${next}">脚評価を見る</a>`;
+
+    return `
+      <div class="meet-card">
+        <div class="meet-card__venue">
+          <div class="meet-card__place">${esc(meet.place)}</div>
+          <div class="meet-card__badges">
+            ${KUI.gradeBadge(meet.grade)}
+            ${hasGirls(meet) ? '<span class="girls-badge" title="ガールズケイリン">♥</span>' : ''}
+          </div>
+          <div class="meet-card__day">${meet.race_day === 1 ? '初日' : `${esc(meet.race_day)}日目`}</div>
+        </div>
+        <div>${middle}</div>
+        <div>${button}</div>
+      </div>`;
+  }
+
+  async function load() {
+    try {
+      // 結果は無くてもよい（当日分は翌日まで置かれない）
+      const [meets, results] = await Promise.all([
+        KUI.fetchRaceInfo(date),
+        KUI.fetchRaceResult(date).catch(() => [])
+      ]);
+      if (!Array.isArray(meets) || !meets.length) throw new Error('empty');
+
+      const finished = KUI.finishedByPlace(results);
+      const rows = meets
+        .filter(m => (m.races || []).length)
+        .map(m => ({ meet: m, next: KUI.nextRaceNum(m.races, finished[m.place]) }));
+
+      // 発走前の開催を上、全レース終了した開催を下に（それぞれデータの並び順のまま）
+      const ordered = rows.filter(r => r.next !== null).concat(rows.filter(r => r.next === null));
+
+      const list = document.getElementById('meetList');
+      list.innerHTML = ordered.map(r => meetCard(r.meet, r.next)).join('');
+      list.hidden = false;
+      loadState.hidden = true;
+    } catch (e) {
+      loadState.className = 'state state--error';
+      loadState.textContent = 'この日の開催データを読み込めませんでした';
+    }
+  }
+
+  load();
+})();
+</script>
 </body>
 </html>

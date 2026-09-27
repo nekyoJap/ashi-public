@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース情報 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927b" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -135,14 +135,14 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927"></script>
+<script src="assets/keirin-ui.js?v=20260927b"></script>
 <script>
 (function () {
   'use strict';
 
   /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合に、
      「読み込み中…」のまま止まらないよう案内を出す */
-  if (!window.KUI || typeof KUI.defaultRaceDate !== 'function') {
+  if (!window.KUI || typeof KUI.nextRaceNum !== 'function') {
     const s = document.getElementById('loadState');
     s.className = 'state state--error';
     s.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
@@ -238,8 +238,7 @@
   }
 
   function nextRaceNum(day) {
-    const r = day.races.find(r => !isFinished(day, r));
-    return r ? Number(r.race_num) : null;
+    return KUI.nextRaceNum(day.races, state.finished[day.place]);
   }
 
   /* ================================
@@ -393,11 +392,7 @@
       ]);
       if (!Array.isArray(days) || !days.length) throw new Error('empty');
 
-      state.finished = {};
-      (Array.isArray(results) ? results : []).forEach(m => {
-        const done = state.finished[m.place] || (state.finished[m.place] = new Set());
-        (m.races || []).forEach(r => { if ((r.racers || []).length) done.add(Number(r.race_num)); });
-      });
+      state.finished = KUI.finishedByPlace(results);
 
       state.days = days;
       state.dayIndex = 0;

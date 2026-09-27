@@ -154,6 +154,24 @@
     return fetchJson('race_result', dateStr);
   }
 
+  /* ---------- 発走済みの判定 ----------
+     結果 JSON に着順が載っているレースを発走済みとみなす（発走時刻は GCS に無い）。
+     結果 JSON はレース翌日の 00:12 ごろ置かれるため、当日の日中は全レースが発走前扱いになる */
+  function finishedByPlace(results) {
+    const map = {};
+    (Array.isArray(results) ? results : []).forEach(m => {
+      const done = map[m.place] || (map[m.place] = new Set());
+      (m.races || []).forEach(r => { if ((r.racers || []).length) done.add(Number(r.race_num)); });
+    });
+    return map;
+  }
+
+  /* 次に発走するレース（結果の無い最小のレース番号）。全レース発走済みなら null */
+  function nextRaceNum(races, done) {
+    const r = (races || []).find(r => !(done && done.has(Number(r.race_num))));
+    return r ? Number(r.race_num) : null;
+  }
+
   /* ---------- 評価（localStorage） ---------- */
   function evalKey(raceId, racerName) {
     return `eval:${raceId}:${racerName}`;
@@ -209,7 +227,7 @@
       <footer class="site-footer">
         <div class="site-footer__inner">
           <div>
-            <div style="color:#fff;font-weight:800;">飛びつきチャンネル</div>
+            <div class="site-footer__name">飛びつきチャンネル</div>
             <p class="site-footer__note">
               当サイトはレースを楽しむための情報提供サービスです。車券の的中を保証するものではありません。<br>
               車券の購入はご自身の判断と責任において行ってください。
@@ -232,7 +250,7 @@
     jstNow, defaultRaceDate, defaultResultDate,
     gradeKey, gradeBadge, bikeBadge, racerCarNo, racerBikeBadge, legBadge, kimariteBadge,
     linesHtml, dayLabel,
-    fetchRaceInfo, fetchRaceResult,
+    fetchRaceInfo, fetchRaceResult, finishedByPlace, nextRaceNum,
     evalKey, loadEvalRaw, autoResize,
     renderHeader, renderFooter, mountChrome
   };

@@ -1,7 +1,7 @@
 @charset "UTF-8";
 /* =========================================================
    競輪情報サイト 共通デザインシステム
-   専門紙ポータル調（ネイビー基調 + 赤アクセント + 車番7色）
+   白基調 + ネイビー・赤アクセント + 車番7色（ダークモードはOS設定に従う）
    ========================================================= */
 
 :root {
@@ -14,7 +14,7 @@
   --ink-3:       #7b8794;
   --line:        #dfe4ea;
   --line-2:      #eceff3;
-  --bg:          #eef1f5;
+  --bg:          #ffffff;
   --panel:       #ffffff;
   --panel-2:     #f7f9fb;
   --zebra:       #f9fafc;   /* 偶数行 */
@@ -27,6 +27,21 @@
   --notice-ink:  #6b4e00;
   --mark:        #1f2937;   /* 印（飛びつきチャンネル） */
   --mark-ink:    #ffffff;
+
+  /* ヘッダー・表見出し・フッター。ライトは白基調、ダークはネイビー地 */
+  --header-bg:   #ffffff;
+  --header-ink:  #16202c;
+  --header-sub:  #7b8794;
+  --header-link: #4a5766;
+  --header-hover:#f2f4f7;
+  --header-line: #dfe4ea;
+  --thead-bg:    #f2f4f7;
+  --thead-ink:   #4a5766;
+  --thead-line:  #dfe4ea;
+  --footer-bg:   #f7f9fb;
+  --footer-ink:  #7b8794;
+  --footer-head: #16202c;
+  --footer-link: #4a5766;
 
   /* accent */
   --red:         #d7002e;
@@ -80,6 +95,20 @@
     --mark:        #e6ebf2;
     --mark-ink:    #0b0f14;
 
+    --header-bg:   linear-gradient(180deg, var(--navy-2), var(--navy));
+    --header-ink:  #ffffff;
+    --header-sub:  #9fb6d4;
+    --header-link: #d5e0ee;
+    --header-hover:rgba(255, 255, 255, .1);
+    --header-line: transparent;
+    --thead-bg:    var(--navy);
+    --thead-ink:   #ffffff;
+    --thead-line:  rgba(255, 255, 255, .18);
+    --footer-bg:   var(--navy);
+    --footer-ink:  #9fb0c4;
+    --footer-head: #ffffff;
+    --footer-link: #cddcec;
+
     --red:         #ff4d6d;
     --red-dark:    #d7002e;
     --gold:        #ffc933;
@@ -119,9 +148,9 @@ a:hover { text-decoration: underline; }
   position: sticky;
   top: 0;
   z-index: 50;
-  background: linear-gradient(180deg, var(--navy-2), var(--navy));
-  color: #fff;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, .18);
+  background: var(--header-bg);
+  color: var(--header-ink);
+  border-bottom: 1px solid var(--header-line);
 }
 
 .site-header__inner {
@@ -138,7 +167,7 @@ a:hover { text-decoration: underline; }
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #fff;
+  color: var(--header-ink);
   font-weight: 800;
   letter-spacing: .02em;
   white-space: nowrap;
@@ -152,6 +181,7 @@ a:hover { text-decoration: underline; }
   height: 28px;
   border-radius: 7px;
   background: linear-gradient(140deg, var(--red), var(--red-dark));
+  color: #fff;
   font-size: 15px;
   font-weight: 800;
   box-shadow: 0 1px 0 rgba(255, 255, 255, .25) inset;
@@ -162,7 +192,7 @@ a:hover { text-decoration: underline; }
   font-size: 10px;
   font-weight: 600;
   letter-spacing: .12em;
-  color: #9fb6d4;
+  color: var(--header-sub);
 }
 
 .gnav {
@@ -179,12 +209,12 @@ a:hover { text-decoration: underline; }
   display: block;
   padding: 6px 12px;
   border-radius: 999px;
-  color: #d5e0ee;
+  color: var(--header-link);
   font-size: 13px;
   font-weight: 700;
   white-space: nowrap;
 }
-.gnav a:hover { background: rgba(255, 255, 255, .1); color: #fff; text-decoration: none; }
+.gnav a:hover { background: var(--header-hover); color: var(--header-ink); text-decoration: none; }
 .gnav a[aria-current="page"] { background: var(--red); color: #fff; }
 
 /* ---------------------------------------------------------
@@ -514,13 +544,13 @@ a:hover { text-decoration: underline; }
 }
 .tbl th:last-child, .tbl td:last-child { border-right: 0; }
 .tbl thead th {
-  background: var(--navy);
-  color: #fff;
+  background: var(--thead-bg);
+  color: var(--thead-ink);
   font-size: 11px;
   font-weight: 700;
   line-height: 1.25;
-  border-right-color: rgba(255, 255, 255, .18);
-  border-bottom: 0;
+  border-right-color: var(--thead-line);
+  border-bottom: 1px solid var(--line);
   white-space: nowrap;
 }
 .tbl tbody tr:nth-child(even) { background: var(--zebra); }
@@ -564,7 +594,7 @@ a:hover { text-decoration: underline; }
 }
 .tbl thead .frz {
   z-index: 20;
-  background: var(--navy);
+  background: var(--thead-bg);
 }
 
 /* ゼブラ・ホバーは行側の背景なので、固定列にも同じ色を敷き直さないと
@@ -632,8 +662,9 @@ a:hover { text-decoration: underline; }
    --------------------------------------------------------- */
 .site-footer {
   margin-top: 32px;
-  background: var(--navy);
-  color: #9fb0c4;
+  background: var(--footer-bg);
+  color: var(--footer-ink);
+  border-top: 1px solid var(--line);
   font-size: 12px;
 }
 .site-footer__inner {
@@ -646,7 +677,8 @@ a:hover { text-decoration: underline; }
   align-items: center;
   justify-content: space-between;
 }
-.site-footer a { color: #cddcec; }
+.site-footer a { color: var(--footer-link); }
+.site-footer__name { color: var(--footer-head); font-weight: 800; }
 .site-footer__note { font-size: 11px; line-height: 1.7; }
 
 /* ---------------------------------------------------------

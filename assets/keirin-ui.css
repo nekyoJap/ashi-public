@@ -42,6 +42,7 @@
   --footer-ink:  #7b8794;
   --footer-head: #16202c;
   --footer-link: #4a5766;
+  --top-sb:      #0e2544;   /* 出走表 S・B のレース内トップ */
 
   /* accent */
   --red:         #d7002e;
@@ -108,6 +109,7 @@
     --footer-ink:  #9fb0c4;
     --footer-head: #ffffff;
     --footer-link: #cddcec;
+    --top-sb:      #9cc0ec;
 
     --red:         #ff4d6d;
     --red-dark:    #d7002e;
@@ -653,6 +655,71 @@ a:hover { text-decoration: underline; }
 
 .racer-name { font-weight: 800; font-size: 13.5px; white-space: nowrap; }
 .racer-meta { font-size: 10.5px; color: var(--ink-3); line-height: 1.3; white-space: nowrap; }
+
+/* 選手名のボタン（タップでメモ）。見た目は選手名のまま、点線の下線でタップできることを示す */
+.racer-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+}
+.racer-btn .racer-name { text-decoration: underline dotted var(--ink-3); text-underline-offset: 3px; }
+.racer-btn:hover .racer-name { color: var(--blue); }
+.note-mark { font-size: 11px; line-height: 1; }
+
+/* 選手メモのモーダル */
+.note-modal {
+  width: min(460px, calc(100vw - 24px));
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: var(--shadow-lg);
+}
+.note-modal::backdrop { background: rgba(0, 0, 0, .45); }
+.note-modal__body { margin: 0; padding: 16px; }
+.note-modal__head { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.note-modal__name { font-size: 18px; font-weight: 800; }
+.note-modal__close {
+  margin-left: auto;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--panel-2);
+  color: var(--ink-2);
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+.note-modal__text { display: block; width: 100%; min-height: 96px; max-height: 50vh; overflow-y: auto; font-size: 16px; }
+.note-modal__updated { min-height: 1.4em; margin-top: 4px; }
+.note-modal__actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 8px; }
+.note-modal__actions .btn { min-width: 5.5em; padding: 8px 14px; }
+/* スマホでは下から出るシートにする */
+@media (max-width: 640px) {
+  .note-modal {
+    width: 100vw;
+    max-width: 100vw;
+    margin: auto 0 0;
+    border-radius: 16px 16px 0 0;
+    border-bottom: 0;
+  }
+}
+
+/* 出走表: レース内で一番多い S・B・決まり手の回数（色は決まり手と揃える） */
+.tbl td.top-mark { font-weight: 800; }
+.top-mark--nige   { color: var(--red);    background: color-mix(in srgb, var(--red) 14%, transparent) !important; }
+.top-mark--makuri { color: var(--makuri); background: color-mix(in srgb, var(--makuri) 16%, transparent) !important; }
+.top-mark--sashi  { color: var(--blue);   background: color-mix(in srgb, var(--blue) 14%, transparent) !important; }
+.top-mark--mark   { color: var(--green);  background: color-mix(in srgb, var(--green) 14%, transparent) !important; }
+.top-mark--sb     { color: var(--top-sb); background: color-mix(in srgb, var(--top-sb) 14%, transparent) !important; }
 
 /* ---------------------------------------------------------
    ライン表記

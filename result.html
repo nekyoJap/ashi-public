@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース結果 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927d" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927e" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -133,14 +133,14 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927d"></script>
+<script src="assets/keirin-ui.js?v=20260927e"></script>
 <script>
 (function () {
   'use strict';
 
   /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合に、
      「読み込み中…」のまま止まらないよう案内を出す */
-  if (!window.KUI || typeof KUI.loadEvaluation !== 'function') {
+  if (!window.KUI || typeof KUI.racerNameButton !== 'function') {
     const s = document.getElementById('loadState');
     s.className = 'state state--error';
     s.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
@@ -284,7 +284,7 @@
                   <td class="frz rcol-rank">${rankBadge(r['着'])}</td>
                   <td class="frz rcol-car">${KUI.bikeBadge(r['車'])}</td>
                   <td class="frz frz--edge rcol-name">
-                    <div class="racer-name">${esc(r['選手名'])}</div>
+                    ${KUI.racerNameButton(r['選手名'], r['期別'], r['府県'])}
                     <div class="racer-meta">${esc(r['年齢'])} ${esc(r['期別'])} ${esc(r['府県'])}</div>
                   </td>
                   ${evalMarkCell(ev)}
@@ -380,6 +380,10 @@
     state.view = latestView();
     render();
   });
+
+  // 選手名タップでメモ。保存・削除したら描き直して 📝 印を更新する
+  KUI.bindNoteButtons(el.raceDetail);
+  document.addEventListener('kui:note-saved', () => { if (state.days.length) renderRaceDetail(); });
 
   el.raceChips.addEventListener('click', e => {
     const btn = e.target.closest('[data-race-index]');

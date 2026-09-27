@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース情報 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927d" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927e" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -113,14 +113,14 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927d"></script>
+<script src="assets/keirin-ui.js?v=20260927e"></script>
 <script>
 (function () {
   'use strict';
 
   /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合に、
      「読み込み中…」のまま止まらないよう案内を出す */
-  if (!window.KUI || typeof KUI.isLoggedIn !== 'function') {
+  if (!window.KUI || typeof KUI.racerNameButton !== 'function') {
     const s = document.getElementById('loadState');
     s.className = 'state state--error';
     s.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
@@ -232,8 +232,28 @@
   /* ================================
      レース描画
      ================================ */
+  /* レース内で一番多い S・B・決まり手の回数。列ごとに最大値の選手全員（同数なら複数）に色を付ける。
+     最大が0なら付けない。欠場（車番「欠」）は比べない */
+  const TOP_COLUMNS = { S: 'sb', B: 'sb', '逃': 'nige', '捲': 'makuri', '差': 'sashi', 'マ': 'mark' };
+
+  function topValues(race) {
+    const racing = race.racers.filter(r => String(r['車番']) !== '欠');
+    const tops = {};
+    Object.keys(TOP_COLUMNS).forEach(col => {
+      const max = Math.max(0, ...racing.map(r => Number(r[col]) || 0));
+      tops[col] = max > 0 ? max : null;
+    });
+    return tops;
+  }
+
+  function countCell(race, tops, r, col) {
+    const top = tops[col] !== null && String(r['車番']) !== '欠' && Number(r[col]) === tops[col];
+    return `<td class="num${top ? ` top-mark top-mark--${TOP_COLUMNS[col]}` : ''}">${esc(r[col])}</td>`;
+  }
+
   function raceCard(day, race, isNext) {
     const withPrev = day.race_day >= 2;
+    const tops = topValues(race);
 
     return `
       <div class="card" style="margin-bottom:14px;">
@@ -275,7 +295,7 @@
                 <tr>
                   <td class="frz col-car">${KUI.racerBikeBadge(r, i)}</td>
                   <td class="frz frz--edge col-name">
-                    <div class="racer-name">${esc(r['選手名'])}</div>
+                    ${KUI.racerNameButton(r['選手名'], r['期別'], r['府県'])}
                     <div class="racer-meta">${esc(r['級班'])} ${esc(r['年齢'])} ${esc(r['期別'])} ${esc(r['府県'])}</div>
                   </td>
                   ${withPrev ? `<td>${!isMember
@@ -285,12 +305,7 @@
                         : '<span class="muted">-</span>')}</td>` : ''}
                   <td class="num">${esc(r['競走得点'])}</td>
                   <td>${KUI.legBadge(r['脚質'])}</td>
-                  <td class="num">${esc(r['S'])}</td>
-                  <td class="num">${esc(r['B'])}</td>
-                  <td class="num">${esc(r['逃'])}</td>
-                  <td class="num">${esc(r['捲'])}</td>
-                  <td class="num">${esc(r['差'])}</td>
-                  <td class="num">${esc(r['マ'])}</td>
+                  ${['S', 'B', '逃', '捲', '差', 'マ'].map(col => countCell(race, tops, r, col)).join('')}
                   <td class="num">${esc(r['勝率'])}</td>
                   <td class="num">${esc(r['2連対率'])}</td>
                   <td class="num">${esc(r['3連対率'])}</td>
@@ -403,6 +418,10 @@
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
+
+  // 選手名タップでメモ。保存・削除したら描き直して 📝 印を更新する
+  KUI.bindNoteButtons(el.content);
+  document.addEventListener('kui:note-saved', () => { if (state.days.length) render(); });
 
   el.content.addEventListener('click', e => {
     const btn = e.target.closest('[data-race]');

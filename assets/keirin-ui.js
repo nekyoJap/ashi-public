@@ -199,6 +199,120 @@
     };
   }
 
+  /* ---------- 選手メモ（利用者向け。管理者の脚評価とは別） ----------
+     レースではなく選手に紐付く。キーは「選手名の先頭5文字＋期別の数字」。
+     出走表の選手名は5文字で切れ、結果には完全な名前が入るため先頭5文字で揃える。
+     府県は移籍で変わるのでキーに入れない（asilog-project の docs/rider-key-check.md）。
+     端末の localStorage に保存するだけなので、別の端末・ブラウザには出ない */
+  const NOTE_PREFIX = 'asilog:note:';
+
+  function riderKey(name, kibetsu) {
+    const n = String(name || '').replace(/\s/g, '').slice(0, 5);
+    // 外国人選手は出走表で期別が空、結果では「0期」になるので、0 は空に揃える
+    const k = String(kibetsu || '').replace(/[^0-9]/g, '').replace(/^0+$/, '');
+    return `${n}|${k}`;
+  }
+
+  function loadNote(key) {
+    try {
+      const raw = localStorage.getItem(NOTE_PREFIX + key);
+      const data = raw ? JSON.parse(raw) : null;
+      return data && data.text ? data : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function saveNote(key, text, meta) {
+    const value = String(text || '').trim();
+    storageSet(NOTE_PREFIX + key, value
+      ? JSON.stringify(Object.assign({}, meta, { text: value, updatedAt: new Date().toISOString() }))
+      : null);
+  }
+
+  /* 選手名のボタン。メモがあれば 📝 を付け、title にメモの先頭を入れる */
+  function racerNameButton(name, kibetsu, prefecture) {
+    const note = loadNote(riderKey(name, kibetsu));
+    const title = note ? `メモ: ${note.text.slice(0, 60)}` : 'タップしてメモを付ける';
+    return `<button type="button" class="racer-btn" data-note-name="${esc(name)}"
+      data-note-kibetsu="${esc(kibetsu)}" data-note-pref="${esc(prefecture)}" title="${esc(title)}">`
+      + `<span class="racer-name">${esc(name)}</span>${note ? '<span class="note-mark" aria-label="メモあり">📝</span>' : ''}</button>`;
+  }
+
+  let noteDialog = null;
+
+  function buildNoteDialog() {
+    const d = document.createElement('dialog');
+    d.className = 'note-modal';
+    d.innerHTML = `
+      <form method="dialog" class="note-modal__body">
+        <div class="note-modal__head">
+          <div>
+            <div class="note-modal__name"></div>
+            <div class="note-modal__meta small muted"></div>
+          </div>
+          <button class="note-modal__close" value="cancel" type="submit" aria-label="閉じる">×</button>
+        </div>
+        <p class="small muted" style="margin:0 0 6px;">この選手へのメモ（レースをまたいで残ります。この端末に保存）</p>
+        <textarea class="textarea note-modal__text" rows="4" placeholder="例: 地元戦は積極的。先行意欲あり"></textarea>
+        <div class="note-modal__updated small muted"></div>
+        <div class="note-modal__actions">
+          <button class="btn" type="button" data-act="delete">削除</button>
+          <button class="btn btn--navy" type="button" data-act="save">保存</button>
+        </div>
+      </form>`;
+    document.body.appendChild(d);
+
+    const text = d.querySelector('.note-modal__text');
+    text.addEventListener('input', () => autoResize(text));
+    // 背景（dialog 自身）をタップしたら閉じる
+    d.addEventListener('click', e => { if (e.target === d) d.close(); });
+    d.querySelector('[data-act="save"]').addEventListener('click', () => {
+      saveNote(d.dataset.key, text.value, JSON.parse(d.dataset.meta));
+      d.close();
+      document.dispatchEvent(new CustomEvent('kui:note-saved', { detail: { key: d.dataset.key } }));
+    });
+    d.querySelector('[data-act="delete"]').addEventListener('click', () => {
+      saveNote(d.dataset.key, '', null);
+      d.close();
+      document.dispatchEvent(new CustomEvent('kui:note-saved', { detail: { key: d.dataset.key } }));
+    });
+    return d;
+  }
+
+  function openNoteModal(rider) {
+    if (!noteDialog) noteDialog = buildNoteDialog();
+    const d = noteDialog;
+    const key = riderKey(rider.name, rider.kibetsu);
+    const note = loadNote(key);
+    d.dataset.key = key;
+    d.dataset.meta = JSON.stringify({ name: rider.name, kibetsu: rider.kibetsu });
+    d.querySelector('.note-modal__name').textContent = rider.name;
+    d.querySelector('.note-modal__meta').textContent = [rider.kibetsu, rider.prefecture].filter(Boolean).join(' ');
+    const text = d.querySelector('.note-modal__text');
+    text.value = note ? note.text : '';
+    d.querySelector('.note-modal__updated').textContent = note && note.updatedAt
+      ? `最終更新 ${new Date(note.updatedAt).toLocaleString('ja-JP', { timeZone: 'Asia/Tokyo', month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}`
+      : '';
+    d.querySelector('[data-act="delete"]').hidden = !note;
+    d.showModal();
+    autoResize(text);
+    text.focus();
+  }
+
+  /* 表の中の選手名ボタン（racerNameButton）のタップでメモを開く。root に1回だけ付ける */
+  function bindNoteButtons(root) {
+    root.addEventListener('click', e => {
+      const btn = e.target.closest('[data-note-name]');
+      if (!btn) return;
+      openNoteModal({
+        name: btn.dataset.noteName,
+        kibetsu: btn.dataset.noteKibetsu,
+        prefecture: btn.dataset.notePref
+      });
+    });
+  }
+
   /* ---------- textarea 自動リサイズ ---------- */
   function autoResize(el) {
     el.style.height = 'auto';
@@ -313,6 +427,7 @@
     linesHtml, dayLabel,
     fetchRaceInfo, fetchRaceResult, finishedByPlace, nextRaceNum,
     evalKey, loadEvalRaw, loadEvaluation, autoResize,
+    riderKey, loadNote, saveNote, racerNameButton, openNoteModal, bindNoteButtons,
     RESULT_MEMBERS_ONLY, isLoggedIn, isAdmin, loginUser, login, logout, canSeeResults, safeNext, loginUrl,
     renderHeader, renderFooter, mountChrome
   };

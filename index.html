@@ -1,53 +1,59 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ASILOG KEIRIN | 競輪レース情報</title>
-  <meta name="description" content="競輪の出走表・レース結果を掲載しています。" />
-  <script src="https://cdn.tailwindcss.com"></script>
-  <!-- OS に明暗を伝える。無いとダークでも日付入力やスクロールバーが白いまま残る -->
-  <style>:root { color-scheme: light dark; }</style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>ASILOG KEIRIN | 競輪レース情報</title>
+<meta name="description" content="競輪の出走表・レース結果を掲載しています。" />
+<link rel="stylesheet" href="assets/keirin-ui.css" />
+<style>
+  .home-grid { display: grid; gap: 14px; grid-template-columns: 1fr; }
+  @media (min-width: 640px) { .home-grid { grid-template-columns: 1fr 1fr; } }
+  .home-card { display: block; padding: 18px; color: inherit; text-decoration: none; }
+  .home-card:hover { border-color: var(--navy-3); }
+  .home-card--wide { grid-column: 1 / -1; }
+  .home-card__icon { font-size: 24px; margin-bottom: 6px; }
+  .home-card__title { font-weight: 800; margin: 0 0 4px; font-size: 16px; }
+</style>
 </head>
-<body class="bg-gray-100 dark:bg-[#0b0f14] text-gray-900 dark:text-[#e6ebf2]">
-  <div class="max-w-3xl mx-auto p-4 py-10">
+<body>
 
-    <header class="mb-10">
-      <h1 class="text-3xl font-bold mb-2">ASILOG KEIRIN</h1>
-      <p class="text-gray-600 dark:text-[#a8b3c1]">競輪の出走表・レース結果を掲載しています。</p>
-    </header>
+<div id="siteHeader"></div>
 
-    <nav class="grid sm:grid-cols-2 gap-4 mb-10">
-      <a href="channel.html"
-         class="block sm:col-span-2 bg-white dark:bg-[#151b23] border dark:border-[#2c3643] rounded-lg p-6 hover:border-gray-900 dark:hover:border-[#5aa2f0] transition">
-        <div class="text-2xl mb-2">📺</div>
-        <h2 class="font-bold mb-1">飛びつきチャンネル</h2>
-        <p class="text-sm text-gray-600 dark:text-[#a8b3c1]">飛びつきが発生しそうなレースと買い目（模範目）を掲載しています。</p>
-      </a>
-
-      <a href="race.html"
-         class="block bg-white dark:bg-[#151b23] border dark:border-[#2c3643] rounded-lg p-6 hover:border-gray-900 dark:hover:border-[#5aa2f0] transition">
-        <div class="text-2xl mb-2">📋</div>
-        <h2 class="font-bold mb-1">レース情報（出走表）</h2>
-        <p class="text-sm text-gray-600 dark:text-[#a8b3c1]">本日開催のレース・出走選手を確認できます。</p>
-      </a>
-
-      <a href="result.html"
-         class="block bg-white dark:bg-[#151b23] border dark:border-[#2c3643] rounded-lg p-6 hover:border-gray-900 dark:hover:border-[#5aa2f0] transition">
-        <div class="text-2xl mb-2">🏁</div>
-        <h2 class="font-bold mb-1">レース結果</h2>
-        <p class="text-sm text-gray-600 dark:text-[#a8b3c1]">確定した着順・レース映像を確認できます。</p>
-      </a>
-    </nav>
-
-    <footer class="border-t dark:border-[#2c3643] pt-6 text-sm text-gray-500 dark:text-[#7d8896]">
-      <a href="company/" class="hover:text-gray-900 dark:hover:text-[#e6ebf2] underline">運営会社</a>
-      <p class="mt-4 text-xs leading-relaxed">
-        当サイトは競輪を楽しむための情報提供を目的としています。
-        車券の的中を保証するものではありません。車券の購入はご自身の判断と責任において行ってください。
-      </p>
-    </footer>
-
+<div class="page-head">
+  <div class="page-head__inner">
+    <h1 class="page-title">ASILOG KEIRIN</h1>
+    <span class="page-en">KEIRIN RACE INFO</span>
   </div>
+</div>
+
+<main class="wrap" style="padding-top:20px;padding-bottom:40px;">
+  <p class="muted" style="margin-top:0;">競輪の出走表・レース結果を掲載しています。</p>
+
+  <nav class="home-grid">
+    <a class="card home-card home-card--wide" href="channel.html">
+      <div class="home-card__icon">📺</div>
+      <h2 class="home-card__title">飛びつきチャンネル</h2>
+      <p class="small muted" style="margin:0;">飛びつきが発生しそうなレースと買い目（模範目）を掲載しています。</p>
+    </a>
+    <a class="card home-card" href="race.html">
+      <div class="home-card__icon">📋</div>
+      <h2 class="home-card__title">レース情報（出走表）</h2>
+      <p class="small muted" style="margin:0;">本日開催のレース・出走選手を確認できます。</p>
+    </a>
+    <a class="card home-card" href="result.html">
+      <div class="home-card__icon">🏁</div>
+      <h2 class="home-card__title">レース結果</h2>
+      <p class="small muted" style="margin:0;">確定した着順・レース映像を確認できます。</p>
+    </a>
+  </nav>
+
+  <p class="small" style="margin-top:24px;"><a href="company/">運営会社</a></p>
+</main>
+
+<div id="siteFooter"></div>
+
+<script src="assets/keirin-ui.js"></script>
+<script>KUI.mountChrome('');</script>
 </body>
 </html>

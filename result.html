@@ -10,7 +10,8 @@
     position: sticky;
     top: var(--header-h);
     z-index: 30;
-    background: rgba(238, 241, 245, .95);
+    /* 固定の明るい色だとダークモードで白く浮くため、背景色から作る */
+    background: color-mix(in srgb, var(--bg) 95%, transparent);
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
     padding: 10px 0;
@@ -164,6 +165,16 @@
 
   const currentDay = () => state.days[state.dayIndex];
 
+  /* 既定は最新の（番号が最も大きい）確定レース */
+  const latestView = () => {
+    // 中止などで選手の載っていないレースは飛ばす
+    const races = currentDay().races;
+    for (let i = races.length - 1; i >= 0; i--) {
+      if ((races[i].racers || []).length) return { mode: 'single', index: i };
+    }
+    return { mode: 'single', index: 0 };
+  };
+
   /* ================================
      評価の保存・取得（localStorage）
      ================================ */
@@ -302,7 +313,7 @@
               </tr>
             </thead>
             <tbody>
-              ${race.racers.map(r => {
+              ${(race.racers || []).map(r => {
                 const comment = r['レース後コメント'] || '';
                 return `
                 <tr>
@@ -314,7 +325,7 @@
                   </td>
                   <td>${esc(r['級班'])}</td>
                   <td class="num">${esc(r['上り'])}</td>
-                  <td>${esc(r['決'])}</td>
+                  <td>${KUI.kimariteBadge(r['決'])}</td>
                   <td>${esc(r['SB'])}</td>
                   <td>${esc(r['着差'])}</td>
                   ${showRaceComment ? `<td class="txt txt--note">
@@ -355,7 +366,8 @@
     renderRaceChips();
 
     if (state.view.mode === 'all') {
-      el.raceDetail.innerHTML = day.races
+      // 最新のレースを上にする
+      el.raceDetail.innerHTML = day.races.slice().reverse()
         .map(race => raceCard(day, race, { video: false, raceComment: false }))
         .join('');
     } else {
@@ -388,7 +400,7 @@
     const lines = [header.join('\t')];
 
     day.races.forEach((race, raceIdx) => {
-      race.racers.forEach(r => {
+      (race.racers || []).forEach(r => {
         const ev = loadEvaluation(day, r['選手名']);
         lines.push([
           day.place, day.grade, day.race_day, race.race_num,
@@ -437,7 +449,7 @@
         const i = days.findIndex(d => d.place === preferPlace);
         if (i >= 0) state.dayIndex = i;
       }
-      state.view = { mode: 'single', index: 0 };
+      state.view = latestView();
 
       el.loadState.hidden = true;
       el.mainArea.hidden = false;
@@ -462,7 +474,7 @@
     const btn = e.target.closest('[data-day]');
     if (!btn) return;
     state.dayIndex = Number(btn.dataset.day);
-    state.view = { mode: 'single', index: 0 };
+    state.view = latestView();
     render();
   });
 
@@ -475,19 +487,13 @@
   });
 
   /* ================================
-     初期化（19時前は前日の結果を表示）
+     初期化（日本時間19時前は前日の結果を表示）
      ================================ */
-  function defaultDate() {
-    const now = new Date();
-    const base = new Date(now);
-    if (now.getHours() < 19) base.setDate(base.getDate() - 1);
-    return KUI.ymd(base);
-  }
 
   KUI.mountChrome('result.html');
 
   const params = new URLSearchParams(location.search);
-  load(params.get('date') || defaultDate(), params.get('place'));
+  load(params.get('date') || KUI.defaultResultDate(), params.get('place'));
 })();
 </script>
 </body>

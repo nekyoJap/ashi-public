@@ -350,6 +350,7 @@ a:hover { text-decoration: underline; }
 .leg--makuri { color: var(--makuri); }
 .leg--sashi { color: var(--blue); }
 .leg--other { color: var(--ink-3); }
+.leg--mark { color: var(--green); } /* 決まり手「マ」 */
 
 /* ---------------------------------------------------------
    チップ（タブ・フィルタ）
@@ -389,6 +390,18 @@ a:hover { text-decoration: underline; }
 }
 .chip.is-active .chip__sub { color: #a9c0dc; }
 .chip__sub { font-size: 11px; font-weight: 600; color: var(--ink-3); }
+
+/* 「次に発走するレース」の印 */
+.chip__next {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--red);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 800;
+}
+.race-group-label { margin: 18px 0 8px; font-size: 13px; font-weight: 800; color: var(--ink-3); }
 
 .chip--race {
   min-width: 52px;

@@ -32,6 +32,28 @@
     return ymd(d);
   }
 
+  /* 「今日」と時刻は日本時間で判定する（端末の時計が日本時間とは限らないため） */
+  function jstNow() {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Tokyo', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', hourCycle: 'h23'
+    }).formatToParts(new Date());
+    const get = t => (parts.find(p => p.type === t) || {}).value;
+    return { ymd: `${get('year')}-${get('month')}-${get('day')}`, hour: Number(get('hour')) };
+  }
+
+  /* 出走表の既定日: 日本時間22時以降は翌日 */
+  function defaultRaceDate() {
+    const now = jstNow();
+    return now.hour >= 22 ? shiftDate(now.ymd, 1) : now.ymd;
+  }
+
+  /* 結果の既定日: 日本時間19時より前は前日 */
+  function defaultResultDate() {
+    const now = jstNow();
+    return now.hour < 19 ? shiftDate(now.ymd, -1) : now.ymd;
+  }
+
   function labelDate(dateStr) {
     const d = new Date(dateStr + 'T00:00:00');
     if (isNaN(d)) return dateStr;
@@ -64,6 +86,19 @@
     return `<span class="bike ${cls}${sz}">${esc(num)}</span>`;
   }
 
+  /* 欠場選手は出走表で車番が「欠」になる。並び順が本来の車番と一致するので、
+     その車番の色で「欠」を表示する（直近120日・81件で結果の車番と全件一致） */
+  function racerCarNo(racer, index) {
+    const n = Number(racer['車番']);
+    return n >= 1 && n <= 9 ? n : index + 1;
+  }
+
+  function racerBikeBadge(racer, index) {
+    const car = racerCarNo(racer, index);
+    const label = String(racer['車番']) === '欠' ? '欠' : car;
+    return `<span class="bike bike-${car}">${esc(label)}</span>`;
+  }
+
   /* ---------- 脚質 ---------- */
   function legBadge(leg) {
     const v = String(leg || '').trim();
@@ -72,6 +107,15 @@
     else if (v.indexOf('両') === 0) cls = 'makuri';
     else if (v.indexOf('追') === 0 || v.indexOf('差') === 0) cls = 'sashi';
     return `<span class="leg leg--${cls}">${esc(v || '-')}</span>`;
+  }
+
+  /* ---------- 決まり手 ---------- */
+  const KIMARITE_CLASS = { '逃': 'nige', '捲': 'makuri', '差': 'sashi', 'マ': 'mark' };
+
+  function kimariteBadge(k) {
+    const v = String(k || '').trim();
+    if (!v) return '';
+    return `<span class="leg leg--${KIMARITE_CLASS[v] || 'other'}">${esc(v)}</span>`;
   }
 
   /* ---------- ライン ---------- */
@@ -185,7 +229,9 @@
 
   global.KUI = {
     GCS_BASE, esc, ymd, compact, shiftDate, labelDate,
-    gradeKey, gradeBadge, bikeBadge, legBadge, linesHtml, dayLabel,
+    jstNow, defaultRaceDate, defaultResultDate,
+    gradeKey, gradeBadge, bikeBadge, racerCarNo, racerBikeBadge, legBadge, kimariteBadge,
+    linesHtml, dayLabel,
     fetchRaceInfo, fetchRaceResult,
     evalKey, loadEvalRaw, autoResize,
     renderHeader, renderFooter, mountChrome

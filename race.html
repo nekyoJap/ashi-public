@@ -10,7 +10,8 @@
     position: sticky;
     top: var(--header-h);
     z-index: 30;
-    background: rgba(238, 241, 245, .95);
+    /* 固定の明るい色だとダークモードで白く浮くため、背景色から作る */
+    background: color-mix(in srgb, var(--bg) 95%, transparent);
     backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
     padding: 10px 0;
@@ -141,7 +142,8 @@
 
   const esc = KUI.esc;
 
-  const state = { date: '', days: [], dayIndex: 0 };
+  /* view: 表示中のレース番号、'all'（全レース）、null（既定＝次に発走するレース） */
+  const state = { date: '', days: [], dayIndex: 0, finished: {}, view: null };
 
   const el = {
     dateInput:   document.getElementById('dateInput'),
@@ -216,9 +218,39 @@
   }
 
   /* ================================
+     発走済みの判定
+     結果 JSON に載っているレースを発走済みとみなす。
+     注意: 結果 JSON はレース翌日の 00:12 に1回だけ置かれるため、
+     レース当日の日中は全レースが発走前扱いになり「次に発走」は 1R になる。
+     ================================ */
+  function isFinished(day, race) {
+    const done = state.finished[day.place];
+    return !!done && done.has(Number(race.race_num));
+  }
+
+  function nextRaceNum(day) {
+    const r = day.races.find(r => !isFinished(day, r));
+    return r ? Number(r.race_num) : null;
+  }
+
+  /* ================================
+     レース別タブ
+     ================================ */
+  function renderRaceTabs(day, selected, next) {
+    return `
+      <div class="chips" id="raceTabs" style="margin-bottom:10px;">
+        ${day.races.map(r => `
+          <button class="chip chip--race${selected === Number(r.race_num) ? ' is-active' : ''}"
+            data-race="${esc(r.race_num)}" type="button">${esc(r.race_num)}R${Number(r.race_num) === next ? '<span class="chip__next">次</span>' : ''}</button>`).join('')}
+        <button class="chip chip--all${selected === 'all' ? ' is-active' : ''}"
+          data-race="all" type="button">全レース表示</button>
+      </div>`;
+  }
+
+  /* ================================
      レース描画
      ================================ */
-  function raceCard(day, race) {
+  function raceCard(day, race, isNext) {
     const withPrev = day.race_day >= 2;
 
     return `
@@ -226,6 +258,7 @@
         <div class="card__head">
           <span class="race-no">${esc(race.race_num)}R</span>
           <h2 class="card__title">${esc(race.race_name)}</h2>
+          ${isNext ? '<span class="badge badge--red">次に発走</span>' : ''}
           <span class="section-head__tail lines">
             <span class="muted small">並び</span>${KUI.linesHtml(race.lines)}
           </span>
@@ -254,11 +287,11 @@
               </tr>
             </thead>
             <tbody>
-              ${race.racers.map(r => {
+              ${race.racers.map((r, i) => {
                 const evalValue = pastEvaluation(day, r['選手名']);
                 return `
                 <tr>
-                  <td class="frz col-car">${KUI.bikeBadge(r['車番'])}</td>
+                  <td class="frz col-car">${KUI.racerBikeBadge(r, i)}</td>
                   <td class="frz frz--edge col-name">
                     <div class="racer-name">${esc(r['選手名'])}</div>
                     <div class="racer-meta">${esc(r['級班'])} ${esc(r['年齢'])} ${esc(r['期別'])} ${esc(r['府県'])}</div>
@@ -299,6 +332,25 @@
     renderDayChips();
     el.channelLink.href = `channel.html?date=${state.date}&place=${encodeURIComponent(day.place)}`;
 
+    const next = nextRaceNum(day);
+    const exists = n => day.races.some(r => Number(r.race_num) === n);
+    const selected = state.view === 'all' ? 'all'
+      : exists(state.view) ? state.view
+      : (next ?? Number(day.races[0].race_num));
+
+    let cards;
+    if (selected === 'all') {
+      // 次に発走するレースから順に、発走済みのレースは新しい順で後ろに並べる
+      const upcoming = day.races.filter(r => !isFinished(day, r));
+      const finished = day.races.filter(r => isFinished(day, r)).reverse();
+      cards = upcoming.map(r => raceCard(day, r, Number(r.race_num) === next)).join('')
+        + (finished.length ? '<div class="race-group-label">発走済みのレース</div>' : '')
+        + finished.map(r => raceCard(day, r, false)).join('');
+    } else {
+      const race = day.races.find(r => Number(r.race_num) === selected);
+      cards = raceCard(day, race, selected === next);
+    }
+
     el.content.innerHTML = `
       <div class="day-summary">
         ${KUI.gradeBadge(day.grade)}
@@ -307,13 +359,14 @@
         <span class="badge">全${day.races.length}R</span>
         <span class="section-head__tail small muted">開催ID ${esc(day.race_id)}</span>
       </div>
-      ${day.races.map(race => raceCard(day, race)).join('')}`;
+      ${renderRaceTabs(day, selected, next)}
+      ${cards}`;
   }
 
   /* ================================
      読み込み
      ================================ */
-  async function load(dateStr, preferPlace) {
+  async function load(dateStr, preferPlace, preferRace) {
     state.date = dateStr;
     el.dateInput.value = dateStr;
     el.dateLabel.textContent = KUI.labelDate(dateStr);
@@ -324,11 +377,22 @@
     el.dayChips.innerHTML = '';
 
     try {
-      const days = await KUI.fetchRaceInfo(dateStr);
+      // 結果は無くてもよい（当日分は翌日まで置かれない）
+      const [days, results] = await Promise.all([
+        KUI.fetchRaceInfo(dateStr),
+        KUI.fetchRaceResult(dateStr).catch(() => [])
+      ]);
       if (!Array.isArray(days) || !days.length) throw new Error('empty');
+
+      state.finished = {};
+      (Array.isArray(results) ? results : []).forEach(m => {
+        const done = state.finished[m.place] || (state.finished[m.place] = new Set());
+        (m.races || []).forEach(r => { if ((r.racers || []).length) done.add(Number(r.race_num)); });
+      });
 
       state.days = days;
       state.dayIndex = 0;
+      state.view = preferRace === 'all' ? 'all' : (preferRace ? Number(preferRace) : null);
       if (preferPlace) {
         const i = days.findIndex(d => d.place === preferPlace);
         if (i >= 0) state.dayIndex = i;
@@ -365,25 +429,28 @@
     const btn = e.target.closest('[data-day]');
     if (!btn) return;
     state.dayIndex = Number(btn.dataset.day);
+    state.view = null;
     render();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   });
 
+  el.content.addEventListener('click', e => {
+    const btn = e.target.closest('[data-race]');
+    if (!btn) return;
+    const v = btn.dataset.race;
+    state.view = v === 'all' ? 'all' : Number(v);
+    render();
+  });
+
   /* ================================
-     初期化（JST 22時で翌日へ切り替え）
+     初期化（日本時間22時で翌日へ切り替え）
      ================================ */
-  function defaultDate() {
-    const now = new Date();
-    const base = new Date(now);
-    if (now.getHours() >= 22) base.setDate(base.getDate() + 1);
-    return KUI.ymd(base);
-  }
 
   KUI.mountChrome('race.html');
   applyMemberState();
 
   const params = new URLSearchParams(location.search);
-  load(params.get('date') || defaultDate(), params.get('place'));
+  load(params.get('date') || KUI.defaultRaceDate(), params.get('place'), params.get('race'));
 })();
 </script>
 </body>

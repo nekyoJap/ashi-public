@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース情報 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -135,10 +135,19 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js"></script>
+<script src="assets/keirin-ui.js?v=20260927"></script>
 <script>
 (function () {
   'use strict';
+
+  /* 共通スクリプトが読めない・古い版がキャッシュに残っている場合に、
+     「読み込み中…」のまま止まらないよう案内を出す */
+  if (!window.KUI || typeof KUI.defaultRaceDate !== 'function') {
+    const s = document.getElementById('loadState');
+    s.className = 'state state--error';
+    s.textContent = '表示に必要なファイルを読み込めませんでした。ページを再読み込みしてください';
+    return;
+  }
 
   const esc = KUI.esc;
 

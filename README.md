@@ -20,6 +20,16 @@
 `index.html` も共通デザインシステムを使います（Tailwind CDN の読み込みはやめました）。
 `company/index.html` のみ独立したデザインで、ダークモードは Tailwind の `dark:` で個別に指定しています。
 
+### キャッシュ対策（`?v=`）
+
+GitHub Pages はファイルを10分キャッシュさせる（`Cache-Control: max-age=600`）。HTML と
+`keirin-ui.js` が食い違うと、古いスクリプトに無い関数を呼んで画面が止まるため、HTML から
+読む `keirin-ui.css` / `keirin-ui.js` には `?v=日付` を付けている。**共通アセットを変えたら
+全ページの `?v=` を更新すること。**
+
+それでもスクリプトが読めなかったときは、`race.html` / `result.html` は「読み込み中…」で
+止まらず、再読み込みを促すメッセージを出す。
+
 ### ダークモード
 
 端末の設定（`prefers-color-scheme`）に追従します。色は `keirin-ui.css` の

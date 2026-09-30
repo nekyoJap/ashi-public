@@ -401,6 +401,10 @@ a:hover { text-decoration: underline; }
 .bike-7 { background: #ff7a00; color: #111; }
 .bike-8 { background: #ff9ec4; color: #111; }
 .bike-9 { background: #7f3fbf; color: #fff; }
+/* ダークモードでは黒い2番車が地に沈むので、薄い縁取りを足す */
+@media (prefers-color-scheme: dark) {
+  .bike-2 { box-shadow: 0 0 0 1px rgba(255, 255, 255, .35); }
+}
 
 /* 脚質 */
 .leg {
@@ -711,6 +715,41 @@ a:hover { text-decoration: underline; }
     border-radius: 16px 16px 0 0;
     border-bottom: 0;
   }
+}
+
+/* オッズ（KUI.oddsPanel）。本番アプリの odds-panel と同じ見た目 */
+.odds { border-top: 1px solid var(--line); padding: 10px 12px 12px; }
+.odds__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.odds__section { border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 6px; background: var(--panel); }
+.odds__section > summary {
+  cursor: pointer;
+  padding: 7px 10px;
+  font-weight: 800;
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+}
+.odds__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 10px 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 4px 14px;
+}
+.odds__list li { display: flex; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px dashed var(--line-2); }
+.odds__list li.is-fav .odds__value { color: var(--red); }
+.odds__pop { min-width: 1.6em; font-family: var(--font-num); font-size: 11px; color: var(--ink-3); text-align: right; }
+.odds-combo { display: inline-flex; align-items: center; }
+.odds-combo .bike { width: 20px; height: 20px; font-size: 11px; }
+.odds-sep { margin: 0 1px; color: var(--ink-3); font-weight: 800; }
+.odds__value { margin-left: auto; font-family: var(--font-num); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.odds__range { margin: 0 1px; color: var(--ink-3); font-weight: 400; }
+@media (max-width: 480px) {
+  .odds { padding: 8px; }
+  .odds__list { grid-template-columns: 1fr 1fr; gap: 2px 10px; padding: 4px 8px 8px; }
+  .odds__value { font-size: 13px; }
+  .odds-combo .bike { width: 18px; height: 18px; font-size: 10px; }
 }
 
 /* 出走表: レース内で一番多い S・B・決まり手の回数（色は決まり手と揃える） */

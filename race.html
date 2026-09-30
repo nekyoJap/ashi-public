@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース情報 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260927e" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20260930a" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -113,7 +113,9 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260927e"></script>
+<script src="assets/keirin-ui.js?v=20260930a"></script>
+<!-- オッズのサンプル（デザイン確認用の固定値）。本物のオッズを入れるときに外す -->
+<script src="assets/odds-mock.js?v=20260930a"></script>
 <script>
 (function () {
   'use strict';
@@ -319,6 +321,9 @@
             </tbody>
           </table>
         </div>
+        ${window.OddsMock ? KUI.oddsPanel(OddsMock.mockOdds(race), {
+          sample: true, note: 'デザイン確認用の仮の数字です'
+        }) : ''}
       </div>`;
   }
 

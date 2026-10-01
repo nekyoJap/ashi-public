@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>レース情報 | 飛びつきチャンネル</title>
-<link rel="stylesheet" href="assets/keirin-ui.css?v=20260930a" />
+<link rel="stylesheet" href="assets/keirin-ui.css?v=20261001a" />
 <style>
   .sticky-bar {
     position: sticky;
@@ -113,9 +113,10 @@
 
 <div id="siteFooter"></div>
 
-<script src="assets/keirin-ui.js?v=20260930a"></script>
+<script src="assets/keirin-ui.js?v=20261001a"></script>
 <!-- オッズのサンプル（デザイン確認用の固定値）。本物のオッズを入れるときに外す -->
-<script src="assets/odds-mock.js?v=20260930a"></script>
+<script src="assets/odds-mock.js?v=20261001a"></script>
+<script src="assets/odds-picker.js?v=20261001a"></script>
 <script>
 (function () {
   'use strict';
@@ -321,9 +322,8 @@
             </tbody>
           </table>
         </div>
-        ${window.OddsMock ? KUI.oddsPanel(OddsMock.mockOdds(race), {
-          sample: true, note: 'デザイン確認用の仮の数字です'
-        }) : ''}
+        ${window.OddsMock && window.OddsPicker ? OddsPicker.html(`${day.race_id}-${race.race_num}`, race,
+          OddsMock.mockOdds(race), { sample: true, note: 'デザイン確認用の仮の数字です' }) : ''}
       </div>`;
   }
 
@@ -426,6 +426,8 @@
 
   // 選手名タップでメモ。保存・削除したら描き直して 📝 印を更新する
   KUI.bindNoteButtons(el.content);
+  // オッズのパネル（券種・車番の選択）
+  if (window.OddsPicker) OddsPicker.bind(el.content);
   document.addEventListener('kui:note-saved', () => { if (state.days.length) render(); });
 
   el.content.addEventListener('click', e => {

@@ -43,6 +43,7 @@
   --footer-head: #16202c;
   --footer-link: #4a5766;
   --top-sb:      #0e2544;   /* 出走表 S・B のレース内トップ */
+  --pick-on:     #0e2544;   /* オッズのパネルで選んだ車番・券種 */
 
   /* accent */
   --red:         #d7002e;
@@ -110,6 +111,7 @@
     --footer-head: #ffffff;
     --footer-link: #cddcec;
     --top-sb:      #9cc0ec;
+    --pick-on:     #2f6fd6;
 
     --red:         #ff4d6d;
     --red-dark:    #d7002e;
@@ -717,39 +719,76 @@ a:hover { text-decoration: underline; }
   }
 }
 
-/* オッズ（KUI.oddsPanel）。本番アプリの odds-panel と同じ見た目 */
-.odds { border-top: 1px solid var(--line); padding: 10px 12px 12px; }
-.odds__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
-.odds__section { border: 1px solid var(--line); border-radius: var(--radius-sm); margin-top: 6px; background: var(--panel); }
-.odds__section > summary {
-  cursor: pointer;
-  padding: 7px 10px;
-  font-weight: 800;
-  display: flex;
-  gap: 8px;
-  align-items: baseline;
-}
-.odds__list {
-  list-style: none;
-  margin: 0;
-  padding: 4px 10px 10px;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  gap: 4px 14px;
-}
-.odds__list li { display: flex; align-items: center; gap: 6px; padding: 3px 0; border-bottom: 1px dashed var(--line-2); }
-.odds__list li.is-fav .odds__value { color: var(--red); }
-.odds__pop { min-width: 1.6em; font-family: var(--font-num); font-size: 11px; color: var(--ink-3); text-align: right; }
+/* オッズのパネル（assets/odds-picker.js）。投票アプリのパネル風に、券種と車番を選ぶとオッズが出る */
+.picker { border-top: 1px solid var(--line); padding: 10px 12px 14px; }
+.odds__head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
 .odds-combo { display: inline-flex; align-items: center; }
-.odds-combo .bike { width: 20px; height: 20px; font-size: 11px; }
-.odds-sep { margin: 0 1px; color: var(--ink-3); font-weight: 800; }
-.odds__value { margin-left: auto; font-family: var(--font-num); font-weight: 800; font-size: 14px; white-space: nowrap; }
+.odds-combo .bike { width: 24px; height: 24px; font-size: 13px; }
+.odds-sep { margin: 0 2px; color: var(--ink-3); font-weight: 800; }
 .odds__range { margin: 0 1px; color: var(--ink-3); font-weight: 400; }
+
+.picker__tabs { display: flex; gap: 4px; overflow-x: auto; scrollbar-width: none; margin-bottom: 8px; }
+.picker__tabs::-webkit-scrollbar { display: none; }
+.picker__tab {
+  flex: none;
+  padding: 7px 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel);
+  color: var(--ink-2);
+  font: inherit;
+  font-weight: 800;
+  cursor: pointer;
+}
+.picker__tab.is-active { background: var(--pick-on); border-color: var(--pick-on); color: #fff; }
+
+.picker__grid { border-top: 1px solid var(--line); }
+.picker__row {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr) repeat(var(--picker-cols), 52px);
+  align-items: center;
+  gap: 6px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line-2);
+}
+.picker__row--head { font-size: 11px; font-weight: 700; color: var(--ink-3); padding: 4px 0; }
+.picker__row--tools { border-bottom: 0; padding: 3px 0; }
+.picker__row.is-out { opacity: .45; }
+.picker__col { text-align: center; }
+.picker__racer { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.picker__racer b, .picker__racer span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.picker__check, .picker__all, .picker__clear {
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--line);
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.picker__check.is-on { background: var(--pick-on); border-color: var(--pick-on); color: #fff; }
+.picker__check:disabled { cursor: not-allowed; }
+.picker__all { background: var(--ink); border-color: var(--ink); color: var(--panel); font-size: 14px; height: 32px; }
+.picker__clear { background: var(--panel); color: var(--ink-2); font-size: 14px; height: 32px; }
+
+.picker__result { margin-top: 12px; padding: 10px 12px; border-radius: var(--radius-sm); background: var(--panel-2); }
+.picker__summary { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 4px; }
+.picker__range { font-family: var(--font-num); font-weight: 800; color: var(--ink-2); }
+.picker__list { list-style: none; margin: 0; padding: 0; }
+.picker__list li { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--line-2); }
+.picker__list li:last-child { border-bottom: 0; }
+.picker__odds { margin-left: auto; font-family: var(--font-num); font-size: 16px; font-weight: 800; white-space: nowrap; }
+.picker__list li.is-fav .picker__odds { color: var(--red); }
+.picker__pop { min-width: 4.2em; text-align: right; font-size: 12px; color: var(--ink-3); white-space: nowrap; }
+@media (min-width: 761px) {
+  .picker__list { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); column-gap: 24px; }
+}
 @media (max-width: 480px) {
-  .odds { padding: 8px; }
-  .odds__list { grid-template-columns: 1fr 1fr; gap: 2px 10px; padding: 4px 8px 8px; }
-  .odds__value { font-size: 13px; }
-  .odds-combo .bike { width: 18px; height: 18px; font-size: 10px; }
+  .picker { padding: 10px 8px 12px; }
+  .picker__row { grid-template-columns: 26px minmax(0, 1fr) repeat(var(--picker-cols), 46px); gap: 5px; }
+  .picker__racer span { font-size: 10.5px; }
 }
 
 /* 出走表: レース内で一番多い S・B・決まり手の回数（色は決まり手と揃える） */

@@ -199,62 +199,6 @@
     };
   }
 
-  /* ---------- オッズ表示 ----------
-     rows: [{ betType, combination: '1-2-3', odds, minOdds?, maxOdds?, popularity }]
-     本番アプリ（asilog-project の components/odds-panel.tsx）と同じ並び・見せ方。
-     opts.sample が true なら「サンプル（固定値）」と明記する */
-  const ODDS_SECTIONS = [
-    { betType: '2車複', ordered: false },
-    { betType: '2車単', ordered: true },
-    { betType: 'ワイド', ordered: false },
-    { betType: '3連複', ordered: false, limit: 20 },
-    { betType: '3連単', ordered: true, limit: 20 }
-  ];
-
-  function oddsCombo(value, ordered) {
-    return `<span class="odds-combo">${String(value).split('-')
-      .map((c, i) => (i ? `<span class="odds-sep">${ordered ? '-' : '='}</span>` : '') + bikeBadge(c)).join('')}</span>`;
-  }
-
-  function oddsValue(r, betType) {
-    const f = v => (v === null || v === undefined ? '-' : Number(v).toFixed(1));
-    return betType === 'ワイド' ? `${f(r.minOdds)}<span class="odds__range">〜</span>${f(r.maxOdds)}` : f(r.odds);
-  }
-
-  function oddsPanel(rows, opts) {
-    if (!rows || !rows.length) return '';
-    const o = opts || {};
-    const sections = ODDS_SECTIONS.map((sec, i) => {
-      const list = rows.filter(r => r.betType === sec.betType);
-      if (!list.length) return '';
-      const shown = sec.limit ? list.slice(0, sec.limit) : list;
-      const count = sec.limit && list.length > sec.limit
-        ? `人気順 上位${sec.limit}件 / 全${list.length}件` : `全${list.length}件`;
-      return `
-        <details class="odds__section"${i === 0 ? ' open' : ''}>
-          <summary>${sec.betType}<span class="small muted">${count}</span></summary>
-          <ol class="odds__list">
-            ${shown.map(r => `
-              <li class="${r.popularity === 1 ? 'is-fav' : ''}">
-                <span class="odds__pop">${esc(r.popularity ?? '-')}</span>
-                ${oddsCombo(r.combination, sec.ordered)}
-                <span class="odds__value">${oddsValue(r, sec.betType)}</span>
-              </li>`).join('')}
-          </ol>
-        </details>`;
-    }).join('');
-
-    return `
-      <div class="odds">
-        <div class="odds__head">
-          <b>オッズ</b>
-          ${o.sample ? '<span class="badge badge--gold">サンプル（固定値）</span>' : ''}
-          ${o.note ? `<span class="section-head__tail small muted">${esc(o.note)}</span>` : ''}
-        </div>
-        ${sections}
-      </div>`;
-  }
-
   /* ---------- 選手メモ（利用者向け。管理者の脚評価とは別） ----------
      レースではなく選手に紐付く。キーは「選手名の先頭5文字＋期別の数字」。
      出走表の選手名は5文字で切れ、結果には完全な名前が入るため先頭5文字で揃える。
@@ -483,7 +427,7 @@
     linesHtml, dayLabel,
     fetchRaceInfo, fetchRaceResult, finishedByPlace, nextRaceNum,
     evalKey, loadEvalRaw, loadEvaluation, autoResize,
-    riderKey, loadNote, saveNote, racerNameButton, openNoteModal, bindNoteButtons, oddsPanel,
+    riderKey, loadNote, saveNote, racerNameButton, openNoteModal, bindNoteButtons,
     RESULT_MEMBERS_ONLY, isLoggedIn, isAdmin, loginUser, login, logout, canSeeResults, safeNext, loginUrl,
     renderHeader, renderFooter, mountChrome
   };
